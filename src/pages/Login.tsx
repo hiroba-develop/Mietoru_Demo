@@ -141,7 +141,7 @@ const Login: React.FC = () => {
             <div
               className="w-full h-full bg-contain bg-no-repeat bg-center"
               style={{
-                backgroundImage: "url(./src/assets/mietoru_favicon.svg)",
+                backgroundImage: "url(/mietoru_favicon.svg)",
               }}
               role="img"
               aria-label="ミエトル"
