@@ -8,18 +8,25 @@ import { jwtDecode } from "jwt-decode";
 // デモユーザーデータ
 const DEMO_USERS = [
   {
-    email: "demo@example.com",
-    password: "demo123",
-    userId: "demo-user-001",
+    email: "normalUser1@example.com",
+    password: "normalUser1Pass",
+    userId: "normal-user-001",
     settingFlg: "1", // 設定完了済み
     role: "0", // 一般ユーザー
   },
   {
-    email: "new@example.com",
-    password: "new123",
-    userId: "new-user-001",
+    email: "normalUser2@example.com",
+    password: "normalUser2Pass",
+    userId: "normal-user-002",
     settingFlg: "0", // 未設定
     role: "0", // 一般ユーザー
+  },
+  {
+    email: "taxUser@example.com",
+    password: "taxUserPass",
+    userId: "tax-user-001",
+    settingFlg: "1", // 設定完了済み
+    role: "1", // 税理士ユーザー
   },
 ];
 
@@ -72,30 +79,12 @@ const Login: React.FC = () => {
             demoUser.role
           );
         } else {
-          // デモ用のデフォルトユーザーとしてログイン成功
-          console.log("デモ用デフォルトユーザーでログイン");
-
-          await login(
-            email,
-            password,
-            `demo-${Date.now()}`, // 一意のユーザーID
-            "1", // 設定完了済み
-            "0" // 一般ユーザー
-          );
+          // 指定されたデモユーザー以外はログイン不可
+          throw new Error("メールアドレスまたはパスワードが正しくありません");
         }
       } else {
-        // デモ新規登録処理
-        console.log("デモ新規登録:", { email });
-
-        // デモ用の遅延
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        console.log("デモ新規登録成功");
-
-        const newUserId = `new-user-${Date.now()}`;
-
-        // 新規登録成功後、自動でログイン
-        await login(email, password, newUserId, "0", "0");
+        // デモモードでは新規登録は無効
+        throw new Error("デモモードでは新規登録はご利用いただけません");
       }
     } catch (err) {
       console.error("デモ認証エラー:", err);
@@ -185,13 +174,15 @@ const Login: React.FC = () => {
           </h3>
           <div className="text-xs text-blue-700 space-y-1">
             <div>
-              <strong>設定完了済み:</strong> demo@example.com / demo123
+              <strong>一般ユーザー（設定済み）:</strong> normalUser1@example.com
+              / normalUser1Pass
             </div>
             <div>
-              <strong>未設定:</strong> new@example.com / new123
+              <strong>一般ユーザー（未設定）:</strong> normalUser2@example.com /
+              normalUser2Pass
             </div>
             <div>
-              <strong>その他:</strong> 任意のメール・パスワードでもログイン可能
+              <strong>税理士ユーザー:</strong> taxUser@example.com / taxUserPass
             </div>
           </div>
         </div>

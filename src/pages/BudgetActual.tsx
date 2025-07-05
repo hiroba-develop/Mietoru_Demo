@@ -1770,14 +1770,6 @@ const BudgetActual: React.FC = () => {
     [fiscalYearStart, fiscalYearStartYear, currentMonth]
   );
 
-  // 月次データ（事業年度ベース）- デモデータから生成
-  const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
-
-  // 年度が変更された時にデータを再生成
-  useEffect(() => {
-    setMonthlyData(generateMonthlyDataFromDemo(selectedYear));
-  }, [generateMonthlyDataFromDemo, selectedYear, sales, profits]);
-
   // 詳細比較表用のデータも年度変更時に更新
   const [tableData, setTableData] = useState<MonthlyData[]>([]);
 

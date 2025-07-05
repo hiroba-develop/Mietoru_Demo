@@ -135,19 +135,14 @@ const Roadmap: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   // 進捗計算用の状態（デモデータで初期化）
-  const [currentYearData, setCurrentYearData] = useState(
-    DEMO_ROADMAP_DATA.currentYearData
-  );
-  const [tenYearData, setTenYearData] = useState(DEMO_ROADMAP_DATA.tenYearData);
-
-  // ユーザーID保持用
-  const [userId, setUserId] = useState<string>("");
+  const [currentYearData] = useState(DEMO_ROADMAP_DATA.currentYearData);
+  const [tenYearData] = useState(DEMO_ROADMAP_DATA.tenYearData);
 
   // 事業年度開始年月の状態
-  const [fiscalYearStartMonth, setFiscalYearStartMonth] = useState<number>(
+  const [fiscalYearStartMonth] = useState<number>(
     DEMO_ROADMAP_DATA.fiscalYearStartMonth
   );
-  const [fiscalYearStartYear, setFiscalYearStartYear] = useState<number>(
+  const [fiscalYearStartYear] = useState<number>(
     DEMO_ROADMAP_DATA.fiscalYearStartYear
   );
 
@@ -170,11 +165,9 @@ const Roadmap: React.FC = () => {
       // cookieからuserIdを取得
       const userId = getCookie("userId");
       if (userId) {
-        setUserId(userId);
+        console.log("デモモード: ユーザーIDが見つかりました");
       } else {
-        console.log(
-          "デモモード: ユーザーIDが見つかりませんが、処理を続行します"
-        );
+        console.log("デモモード: ユーザーIDが見つかりません");
       }
 
       try {
