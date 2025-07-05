@@ -1,17 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  Save,
-  Plus,
-  Trash2,
-  Bell,
-  User,
-  Database,
-  Building,
-  Target,
-  Trophy,
-  Shield,
-  Eye,
-} from "lucide-react";
+import { Save, Plus, Trash2, Bell, User, Building, Target } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import type {
   InitialSetup,
@@ -19,55 +7,109 @@ import type {
   Industry,
   BusinessExperience,
   FinancialKnowledge,
-  RankingSettings,
+  TaskType,
 } from "../types";
+
+// cookieを取得するためのユーティリティ関数
+const getCookie = (name: string): string | null => {
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(";");
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === " ") c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+};
 
 interface Task {
   id: number;
+  taskId?: string;
   name: string;
   day: number;
   enabled: boolean;
+  type: TaskType;
 }
 
+// デモ用の設定データ
+const DEMO_SETTING_DATA = {
+  name: "デモユーザー",
+  company: "デモ株式会社",
+  telNo: "03-1234-5678",
+  companySize: 2, // 法人（従業員1-5名）
+  industry: 1, // IT・ソフトウェア
+  fiscalYearStartYear: 2023,
+  fiscalYearStartMonth: 4,
+  totalAssets: 5000000, // 500万円
+  businessExperience: 2, // 1-3年
+  financialKnowledge: 2, // 基本レベル
+};
+
+// デモ用のタスクデータ
+const DEMO_TASKS: Task[] = [
+  {
+    id: 1,
+    taskId: "task-demo-1",
+    name: "売上・経費の記録",
+    day: 5,
+    enabled: true,
+    type: "custom",
+  },
+  {
+    id: 2,
+    taskId: "task-demo-2",
+    name: "請求書の発行",
+    day: 10,
+    enabled: true,
+    type: "custom",
+  },
+  {
+    id: 3,
+    taskId: "task-demo-3",
+    name: "銀行口座の残高確認",
+    day: 15,
+    enabled: true,
+    type: "custom",
+  },
+  {
+    id: 4,
+    taskId: "task-demo-4",
+    name: "取引先への支払い",
+    day: 20,
+    enabled: false,
+    type: "custom",
+  },
+  {
+    id: 5,
+    taskId: "task-demo-5",
+    name: "月次損益の確認",
+    day: 25,
+    enabled: true,
+    type: "custom",
+  },
+];
+
 const Settings: React.FC = () => {
-  const { user, userSetup, updateUserSetup } = useAuth();
+  const { user, updateUserSetup } = useAuth();
 
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, name: "月次売上の確認と入力", day: 5, enabled: true },
-    { id: 2, name: "経費の整理と計上", day: 10, enabled: true },
-    { id: 3, name: "前月実績の分析", day: 15, enabled: false },
-  ]);
-
+  const [tasks, setTasks] = useState<Task[]>(DEMO_TASKS);
   const [newTaskName, setNewTaskName] = useState("");
   const [newTaskDay, setNewTaskDay] = useState(1);
 
+  // タスク編集用の状態管理
+  const [editingTaskId, setEditingTaskId] = useState<number | null>(null);
+  const [editingTaskName, setEditingTaskName] = useState("");
+  const [editingTaskDay, setEditingTaskDay] = useState(1);
+
   // 初期設定データの状態管理
   const [setupData, setSetupData] = useState<InitialSetup | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [userInfo, setUserInfo] = useState({
-    name: user?.name || "田中太郎",
-    email: user?.email || "tanaka@example.com",
-    phone: "03-1234-5678",
-  });
-
-  const [yayoiSettings, setYayoiSettings] = useState({
-    connected: true,
-    apiKey: "****-****-****-1234",
-    autoSync: true,
-    syncFrequency: "daily",
-  });
-
-  const [notificationSettings, setNotificationSettings] = useState({
-    email: true,
-    browser: true,
-    mobile: false,
-  });
-
-  const [rankingSettings, setRankingSettings] = useState<RankingSettings>({
-    isParticipating: true,
-    isAnonymous: false,
-    allowBenchmarking: true,
-    notificationEnabled: true,
+    name: "",
+    email: "",
+    phone: "",
   });
 
   // オプション定義
@@ -107,53 +149,326 @@ const Settings: React.FC = () => {
     "上級レベル",
   ];
 
-  // 設定データを初期化
-  useEffect(() => {
-    if (userSetup) {
-      setSetupData(userSetup);
-    }
-  }, [userSetup]);
+  // 数値から選択肢へのマッピング関数
+  const getCompanySizeFromNumber = (size: number): CompanySize => {
+    const mapping: { [key: number]: CompanySize } = {
+      1: "個人事業主",
+      2: "法人（従業員1-5名）",
+      3: "法人（従業員6-20名）",
+      4: "法人（従業員21名以上）",
+    };
+    return mapping[size] || "個人事業主";
+  };
 
-  const handleAddTask = () => {
+  const getIndustryFromNumber = (industry: number): Industry => {
+    const mapping: { [key: number]: Industry } = {
+      1: "IT・ソフトウェア",
+      2: "製造業",
+      3: "小売業",
+      4: "飲食業",
+      5: "サービス業",
+      6: "建設業",
+      7: "医療・福祉",
+      8: "教育",
+      9: "金融・保険",
+      10: "不動産",
+      11: "その他",
+    };
+    return mapping[industry] || "その他";
+  };
+
+  const getBusinessExperienceFromNumber = (
+    experience: number
+  ): BusinessExperience => {
+    const mapping: { [key: number]: BusinessExperience } = {
+      1: "1年未満",
+      2: "1-3年",
+      3: "3-5年",
+      4: "5-10年",
+      5: "10年以上",
+    };
+    return mapping[experience] || "1年未満";
+  };
+
+  const getFinancialKnowledgeFromNumber = (
+    knowledge: number
+  ): FinancialKnowledge => {
+    const mapping: { [key: number]: FinancialKnowledge } = {
+      1: "初心者",
+      2: "基本レベル",
+      3: "中級レベル",
+      4: "上級レベル",
+    };
+    return mapping[knowledge] || "初心者";
+  };
+
+  // デモデータを初期化
+  useEffect(() => {
+    const loadDemoData = async () => {
+      // cookieからuserIdを取得
+      const userId = getCookie("userId");
+
+      if (!userId) {
+        console.log(
+          "デモモード: ユーザーIDが見つかりませんが、処理を続行します"
+        );
+      }
+
+      try {
+        setLoading(true);
+
+        // デモ用の遅延
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        console.log("デモ設定データを読み込み中...");
+
+        // ユーザー情報を設定
+        setUserInfo({
+          name: DEMO_SETTING_DATA.name,
+          email: user?.email || "demo@example.com",
+          phone: DEMO_SETTING_DATA.telNo,
+        });
+
+        // 設定データを変換して設定
+        const convertedSetupData: InitialSetup = {
+          userName: DEMO_SETTING_DATA.name,
+          companyName: DEMO_SETTING_DATA.company,
+          phoneNumber: DEMO_SETTING_DATA.telNo,
+          companySize: getCompanySizeFromNumber(DEMO_SETTING_DATA.companySize),
+          industry: getIndustryFromNumber(DEMO_SETTING_DATA.industry),
+          fiscalYearStartYear: DEMO_SETTING_DATA.fiscalYearStartYear,
+          fiscalYearStartMonth: DEMO_SETTING_DATA.fiscalYearStartMonth,
+          currentAssets: DEMO_SETTING_DATA.totalAssets,
+          businessExperience: getBusinessExperienceFromNumber(
+            DEMO_SETTING_DATA.businessExperience
+          ),
+          financialKnowledge: getFinancialKnowledgeFromNumber(
+            DEMO_SETTING_DATA.financialKnowledge
+          ),
+          priorityGoals: [],
+          longTermGoal: {
+            targetYear: DEMO_SETTING_DATA.fiscalYearStartYear + 10,
+            targetNetWorth: DEMO_SETTING_DATA.totalAssets * 10,
+            description: "10年で純資産5000万円を達成する",
+          },
+        };
+
+        setSetupData(convertedSetupData);
+
+        console.log("デモ設定データ読み込み完了:", convertedSetupData);
+      } catch (err) {
+        console.error("デモ設定データの読み込みエラー:", err);
+        setError("設定データの読み込み中にエラーが発生しました");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDemoData();
+  }, [user]);
+
+  const handleAddTask = async () => {
     if (newTaskName.trim()) {
+      const userId = getCookie("userId");
+
+      if (!userId) {
+        console.log(
+          "デモモード: ユーザーIDが見つかりませんが、処理を続行します"
+        );
+      }
+
       const newTask: Task = {
         id: Date.now(),
+        taskId: `task-demo-${Date.now()}`,
         name: newTaskName,
         day: newTaskDay,
         enabled: true,
+        type: "custom" as TaskType,
       };
-      setTasks([...tasks, newTask]);
-      setNewTaskName("");
-      setNewTaskDay(1);
+
+      try {
+        // デモ用の遅延
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        console.log("デモタスク追加:", newTask);
+
+        setTasks([...tasks, newTask]);
+        setNewTaskName("");
+        setNewTaskDay(1);
+      } catch (err) {
+        console.error("デモタスク追加エラー:", err);
+        alert("タスクの追加中にエラーが発生しました");
+      }
     }
   };
 
-  const handleDeleteTask = (id: number) => {
-    setTasks(tasks.filter((task) => task.id !== id));
+  const handleDeleteTask = async (id: number) => {
+    const userId = getCookie("userId");
+
+    if (!userId) {
+      console.log("デモモード: ユーザーIDが見つかりませんが、処理を続行します");
+    }
+
+    const taskToDelete = tasks.find((task) => task.id === id);
+    if (!taskToDelete) {
+      alert("削除対象のタスクが見つかりません");
+      return;
+    }
+
+    try {
+      // デモ用の遅延
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      console.log("デモタスク削除:", taskToDelete);
+
+      setTasks(tasks.filter((task) => task.id !== id));
+    } catch (err) {
+      console.error("デモタスク削除エラー:", err);
+      alert("タスクの削除中にエラーが発生しました");
+    }
   };
 
-  const handleTaskToggle = (id: number) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === id ? { ...task, enabled: !task.enabled } : task
-      )
-    );
+  const handleTaskToggle = async (id: number) => {
+    const userId = getCookie("userId");
+
+    if (!userId) {
+      console.log("デモモード: ユーザーIDが見つかりませんが、処理を続行します");
+    }
+
+    const taskToUpdate = tasks.find((task) => task.id === id);
+    if (!taskToUpdate) {
+      alert("更新対象のタスクが見つかりません");
+      return;
+    }
+
+    try {
+      // デモ用の遅延
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      console.log("デモタスク切り替え:", taskToUpdate);
+
+      setTasks(
+        tasks.map((task) =>
+          task.id === id ? { ...task, enabled: !task.enabled } : task
+        )
+      );
+    } catch (err) {
+      console.error("デモタスク更新エラー:", err);
+      alert("タスクの更新中にエラーが発生しました");
+    }
   };
 
-  const handleSaveSettings = () => {
-    if (setupData) {
+  // タスク編集機能
+  const startEditingTask = (task: Task) => {
+    setEditingTaskId(task.id);
+    setEditingTaskName(task.name);
+    setEditingTaskDay(task.day);
+  };
+
+  const saveEditingTask = async () => {
+    if (editingTaskId && editingTaskName.trim()) {
+      const userId = getCookie("userId");
+
+      if (!userId) {
+        console.log(
+          "デモモード: ユーザーIDが見つかりませんが、処理を続行します"
+        );
+      }
+
+      const taskToEdit = tasks.find((t) => t.id === editingTaskId);
+      if (!taskToEdit) {
+        alert("編集対象のタスクが見つかりません");
+        return;
+      }
+
+      try {
+        // デモ用の遅延
+        await new Promise((resolve) => setTimeout(resolve, 300));
+
+        console.log("デモタスク編集:", {
+          id: editingTaskId,
+          name: editingTaskName,
+          day: editingTaskDay,
+        });
+
+        setTasks(
+          tasks.map((task) =>
+            task.id === editingTaskId
+              ? { ...task, name: editingTaskName, day: editingTaskDay }
+              : task
+          )
+        );
+        setEditingTaskId(null);
+        setEditingTaskName("");
+        setEditingTaskDay(1);
+      } catch (err) {
+        console.error("デモタスク更新エラー:", err);
+        alert("タスクの更新中にエラーが発生しました");
+      }
+    }
+  };
+
+  const cancelEditingTask = () => {
+    setEditingTaskId(null);
+    setEditingTaskName("");
+    setEditingTaskDay(1);
+  };
+
+  const handleSaveSettings = async () => {
+    const userId = getCookie("userId");
+
+    if (!setupData || !userId) {
+      console.log(
+        "デモモード: 保存に必要な情報が不足していますが、処理を続行します"
+      );
+    }
+
+    if (!setupData) {
+      alert("保存に必要な情報が不足しています");
+      return;
+    }
+
+    try {
+      // デモ用の遅延
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+      console.log("デモ設定保存:", setupData);
+
       updateUserSetup(setupData);
+      alert("設定を保存しました。(デモモード)");
+    } catch (err) {
+      console.error("デモ設定保存エラー:", err);
+      alert("設定の保存中にエラーが発生しました。");
     }
-    alert("設定を保存しました。");
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("ja-JP", {
-      style: "currency",
-      currency: "JPY",
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-500">設定データを読み込み中...</p>
+          <p className="text-sm text-blue-600 mt-2">(デモモード)</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <p className="text-red-500">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 btn-primary"
+          >
+            再読み込み
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!setupData) {
     return (
@@ -168,7 +483,9 @@ const Settings: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h1 className="text-2xl sm:text-3xl font-bold text-text">設定</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-text">
+          設定 (デモモード)
+        </h1>
         <button
           onClick={handleSaveSettings}
           className="btn-primary flex items-center justify-center space-x-2 text-sm"
@@ -263,31 +580,12 @@ const Settings: React.FC = () => {
 
             <div>
               <label className="block text-sm text-text/70 mb-2">
-                事業年度開始月
+                事業年度開始年月
               </label>
-              <select
-                value={setupData.fiscalYearStartMonth}
-                onChange={(e) =>
-                  setSetupData({
-                    ...setupData,
-                    fiscalYearStartMonth: parseInt(e.target.value),
-                  })
-                }
-                className="input-field w-full pr-8 appearance-none bg-white"
-                style={{
-                  backgroundImage:
-                    'url(\'data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>\')',
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "calc(100% - 4px) center",
-                  backgroundSize: "16px",
-                }}
-              >
-                {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                  <option key={month} value={month}>
-                    {month}月
-                  </option>
-                ))}
-              </select>
+              <p className="text-text font-medium">
+                {setupData.fiscalYearStartYear || new Date().getFullYear()}年
+                {setupData.fiscalYearStartMonth}月
+              </p>
             </div>
           </div>
         </div>
@@ -302,48 +600,6 @@ const Settings: React.FC = () => {
           </div>
 
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-text/70 mb-2">
-                現在の総資産
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  min="0"
-                  step="10000"
-                  value={setupData.currentAssets}
-                  onChange={(e) =>
-                    setSetupData({
-                      ...setupData,
-                      currentAssets: parseInt(e.target.value) || 0,
-                    })
-                  }
-                  className="input-field w-full pr-12 text-right"
-                />
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-text/50">
-                  円
-                </span>
-              </div>
-              <p className="text-xs text-text/60 mt-1">
-                現在: {formatCurrency(setupData.currentAssets)}
-              </p>
-            </div>
-
-            <div className="bg-blue-50 rounded-lg p-3">
-              <p className="text-sm text-blue-800">
-                <strong>長期目標:</strong> {setupData.longTermGoal.targetYear}
-                年までに
-                {formatCurrency(setupData.longTermGoal.targetNetWorth)}
-              </p>
-              <p className="text-xs text-blue-600 mt-1">
-                必要増加額:{" "}
-                {formatCurrency(
-                  setupData.longTermGoal.targetNetWorth -
-                    setupData.currentAssets
-                )}
-              </p>
-            </div>
-
             <div>
               <label className="block text-sm text-text/70 mb-2">
                 事業経験
@@ -408,11 +664,17 @@ const Settings: React.FC = () => {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* 月次タスク通知設定 */}
         <div className="card">
-          <div className="flex items-center space-x-2 mb-4">
+          <div className="flex items-center space-x-2">
             <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             <h3 className="text-base sm:text-lg font-semibold text-text">
               月次タスク通知設定
             </h3>
+          </div>
+          <div className="text-base sm:text-lg mb-4 ml-4">
+            <p className="text-sm text-text/70">
+              登録メールアドレスに通知を送信
+              (デモ版では実際の通知は送信されません)
+            </p>
           </div>
 
           <div className="space-y-4">
@@ -421,28 +683,92 @@ const Settings: React.FC = () => {
               {tasks.map((task) => (
                 <div
                   key={task.id}
-                  className="flex items-center justify-between p-3 border border-border rounded-lg"
+                  className="p-3 border border-border rounded-lg"
                 >
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="checkbox"
-                      checked={task.enabled}
-                      onChange={() => handleTaskToggle(task.id)}
-                      className="rounded border-border text-primary focus:ring-primary"
-                    />
-                    <div>
-                      <p className="font-medium text-text">{task.name}</p>
-                      <p className="text-sm text-text/70">
-                        毎月{task.day}日に通知
-                      </p>
+                  {editingTaskId === task.id ? (
+                    // 編集モード
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm text-text/70 mb-1">
+                          タスク名
+                        </label>
+                        <input
+                          type="text"
+                          value={editingTaskName}
+                          onChange={(e) => setEditingTaskName(e.target.value)}
+                          className="input-field w-full"
+                          placeholder="タスク名を入力"
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <label className="text-sm text-text/70">毎月</label>
+                        <select
+                          value={editingTaskDay}
+                          onChange={(e) =>
+                            setEditingTaskDay(Number(e.target.value))
+                          }
+                          className="input-field pr-8 appearance-none bg-white"
+                          style={{
+                            backgroundImage:
+                              'url(\'data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>\')',
+                            backgroundRepeat: "no-repeat",
+                            backgroundPosition: "calc(100% - 4px) center",
+                            backgroundSize: "16px",
+                          }}
+                        >
+                          {Array.from({ length: 28 }, (_, i) => (
+                            <option key={i + 1} value={i + 1}>
+                              {i + 1}日
+                            </option>
+                          ))}
+                        </select>
+                        <label className="text-sm text-text/70">に通知</label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={saveEditingTask}
+                          className="btn-primary text-sm px-3 py-1 flex items-center"
+                        >
+                          <Save className="h-3 w-3 mr-1" />
+                          保存
+                        </button>
+                        <button
+                          onClick={cancelEditingTask}
+                          className="btn-secondary text-sm px-3 py-1"
+                        >
+                          キャンセル
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                  <button
-                    onClick={() => handleDeleteTask(task.id)}
-                    className="text-error hover:bg-error/10 p-1 rounded"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  ) : (
+                    // 通常表示
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <input
+                          type="checkbox"
+                          checked={task.enabled}
+                          onChange={() => handleTaskToggle(task.id)}
+                          className="rounded border-border text-primary focus:ring-primary"
+                        />
+                        <div
+                          onDoubleClick={() => startEditingTask(task)}
+                          className="cursor-pointer hover:bg-gray-50 p-1 rounded"
+                          title="ダブルクリックで編集"
+                        >
+                          <p className="font-medium text-text">{task.name}</p>
+                          <p className="text-sm text-text/70">
+                            毎月{task.day}日に通知
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteTask(task.id)}
+                        className="text-error hover:bg-error/10 p-1 rounded"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -492,53 +818,6 @@ const Settings: React.FC = () => {
           </div>
         </div>
 
-        {/* 通知方法設定 */}
-        <div className="card">
-          <h3 className="text-base sm:text-lg font-semibold text-text mb-4">
-            通知方法
-          </h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-text">メール通知</p>
-                <p className="text-sm text-text/70">
-                  登録メールアドレスに通知を送信
-                </p>
-              </div>
-              <input
-                type="checkbox"
-                checked={notificationSettings.email}
-                onChange={(e) =>
-                  setNotificationSettings({
-                    ...notificationSettings,
-                    email: e.target.checked,
-                  })
-                }
-                className="rounded border-border text-primary focus:ring-primary"
-              />
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-text">ブラウザ通知</p>
-                <p className="text-sm text-text/70">ブラウザに通知を表示</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={notificationSettings.browser}
-                onChange={(e) =>
-                  setNotificationSettings({
-                    ...notificationSettings,
-                    browser: e.target.checked,
-                  })
-                }
-                className="rounded border-border text-primary focus:ring-primary"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {/* ユーザー情報設定 */}
         <div className="card">
           <div className="flex items-center space-x-2 mb-4">
@@ -585,212 +864,6 @@ const Settings: React.FC = () => {
                 }
                 className="input-field w-full"
               />
-            </div>
-          </div>
-        </div>
-
-        {/* 弥生会計連携設定 */}
-        <div className="card">
-          <div className="flex items-center space-x-2 mb-4">
-            <Database className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-            <h3 className="text-base sm:text-lg font-semibold text-text">
-              弥生会計連携
-            </h3>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-sub2/30 rounded-lg">
-              <div>
-                <p className="font-medium text-text">連携状況</p>
-                <p className="text-sm text-text/70">
-                  APIキー: {yayoiSettings.apiKey}
-                </p>
-              </div>
-              <span
-                className={`px-2 py-1 rounded-full text-xs ${
-                  yayoiSettings.connected
-                    ? "bg-success/10 text-success"
-                    : "bg-error/10 text-error"
-                }`}
-              >
-                {yayoiSettings.connected ? "接続済み" : "未接続"}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-text">自動同期</p>
-                <p className="text-sm text-text/70">定期的にデータを自動取得</p>
-              </div>
-              <input
-                type="checkbox"
-                checked={yayoiSettings.autoSync}
-                onChange={(e) =>
-                  setYayoiSettings({
-                    ...yayoiSettings,
-                    autoSync: e.target.checked,
-                  })
-                }
-                className="rounded border-border text-primary focus:ring-primary"
-              />
-            </div>
-
-            {yayoiSettings.autoSync && (
-              <div>
-                <label className="block text-sm text-text/70 mb-1">
-                  同期頻度
-                </label>
-                <select
-                  value={yayoiSettings.syncFrequency}
-                  onChange={(e) =>
-                    setYayoiSettings({
-                      ...yayoiSettings,
-                      syncFrequency: e.target.value,
-                    })
-                  }
-                  className="input-field w-full pr-8 appearance-none bg-white"
-                  style={{
-                    backgroundImage:
-                      'url(\'data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>\')',
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "calc(100% - 4px) center",
-                    backgroundSize: "16px",
-                  }}
-                >
-                  <option value="hourly">1時間ごと</option>
-                  <option value="daily">1日ごと</option>
-                  <option value="weekly">1週間ごと</option>
-                </select>
-              </div>
-            )}
-
-            <button className="btn-secondary w-full">連携設定を変更</button>
-          </div>
-        </div>
-
-        {/* ランキング・表彰設定 */}
-        <div className="card">
-          <div className="flex items-center space-x-2 mb-4">
-            <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-            <h3 className="text-base sm:text-lg font-semibold text-text">
-              ランキング・表彰設定
-            </h3>
-          </div>
-
-          <div className="space-y-4">
-            {/* ランキング参加設定 */}
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-text">ランキング参加</p>
-                <p className="text-sm text-text/70">
-                  企業間パフォーマンス比較ランキングに参加します
-                </p>
-              </div>
-              <input
-                type="checkbox"
-                checked={rankingSettings.isParticipating}
-                onChange={(e) =>
-                  setRankingSettings({
-                    ...rankingSettings,
-                    isParticipating: e.target.checked,
-                  })
-                }
-                className="rounded border-border text-primary focus:ring-primary"
-              />
-            </div>
-
-            {/* 匿名表示設定 */}
-            {rankingSettings.isParticipating && (
-              <div className="bg-sub2/30 rounded-lg p-3 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Shield className="h-4 w-4 text-primary" />
-                    <div>
-                      <p className="font-medium text-text">匿名表示</p>
-                      <p className="text-sm text-text/70">
-                        ランキングで会社名を「A社」等で表示
-                      </p>
-                    </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={rankingSettings.isAnonymous}
-                    onChange={(e) =>
-                      setRankingSettings({
-                        ...rankingSettings,
-                        isAnonymous: e.target.checked,
-                      })
-                    }
-                    className="rounded border-border text-primary focus:ring-primary"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Eye className="h-4 w-4 text-primary" />
-                    <div>
-                      <p className="font-medium text-text">ベンチマーク参加</p>
-                      <p className="text-sm text-text/70">
-                        業界平均データの計算に参加
-                      </p>
-                    </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={rankingSettings.allowBenchmarking}
-                    onChange={(e) =>
-                      setRankingSettings({
-                        ...rankingSettings,
-                        allowBenchmarking: e.target.checked,
-                      })
-                    }
-                    className="rounded border-border text-primary focus:ring-primary"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Bell className="h-4 w-4 text-primary" />
-                    <div>
-                      <p className="font-medium text-text">ランキング通知</p>
-                      <p className="text-sm text-text/70">
-                        順位変動や表彰の通知を受け取る
-                      </p>
-                    </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={rankingSettings.notificationEnabled}
-                    onChange={(e) =>
-                      setRankingSettings({
-                        ...rankingSettings,
-                        notificationEnabled: e.target.checked,
-                      })
-                    }
-                    className="rounded border-border text-primary focus:ring-primary"
-                  />
-                </div>
-              </div>
-            )}
-
-            {!rankingSettings.isParticipating && (
-              <div className="bg-warning/10 border border-warning/30 rounded-lg p-3">
-                <p className="text-sm text-warning">
-                  ⚠️
-                  ランキングに参加しない場合、ベンチマーク情報や業界比較機能は利用できません。
-                </p>
-              </div>
-            )}
-
-            {/* ランキング算定基準の説明 */}
-            <div className="bg-sub2/30 rounded-lg p-3">
-              <h4 className="font-medium text-text mb-2">総合スコア算定基準</h4>
-              <div className="space-y-1 text-sm text-text/70">
-                <p>• 純資産形成率: 40%</p>
-                <p>• 売上成長率: 25%</p>
-                <p>• 利益率改善: 20%</p>
-                <p>• 目標達成率: 15%</p>
-              </div>
             </div>
           </div>
         </div>

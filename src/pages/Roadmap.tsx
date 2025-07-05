@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Save, Calculator, Navigation } from "lucide-react";
+import { Save, Navigation } from "lucide-react";
 import {
   LineChart,
   Line,
@@ -9,115 +9,191 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { useAuth } from "../contexts/AuthContext";
+
+// cookieを取得するためのユーティリティ関数
+const getCookie = (name: string): string | null => {
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(";");
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === " ") c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+};
 
 interface YearlyTarget {
   year: number;
   netWorth: number; // 純資産
   revenue: number; // 売上
   profit: number; // 事業の利益
-  employees: number;
   phase: string;
 }
 
-const Roadmap: React.FC = () => {
-  const { userSetup } = useAuth();
+// デモ用のロードマップデータ
+const DEMO_ROADMAP_DATA = {
+  // 事業年度設定
+  fiscalYearStartMonth: 4,
+  fiscalYearStartYear: 2023,
 
-  // 初期設定から初期従業員数を取得
-  const initialEmployees = userSetup?.employeeCount || 1;
+  // 今年度と10年目標の進捗データ
+  currentYearData: {
+    target: 2000, // 万円
+    actual: 500, // 万円
+    progress: 25.0, // %
+  },
 
-  // アニメーション用の状態
-  const [yearlyProgress, setYearlyProgress] = useState(0);
-  const [tenYearProgress, setTenYearProgress] = useState(0);
+  tenYearData: {
+    target: 5000, // 万円
+    actual: 500, // 万円
+    progress: 10.0, // %
+  },
 
-  const [targets, setTargets] = useState<YearlyTarget[]>([
+  // 年次目標データ
+  yearlyTargets: [
     {
       year: 1,
-      netWorth: 5000000,
-      revenue: 10000000, // 1000万円
-      profit: 2000000, // 200万円以上
-      employees: initialEmployees,
+      netWorth: 5000000, // 500万円
+      revenue: 12000000, // 1200万円
+      profit: 4800000, // 480万円
       phase: "創業期",
     },
     {
       year: 2,
-      netWorth: 7000000,
-      revenue: 12000000, // 1200万円
-      profit: 2000000, // 200万円以上
-      employees: initialEmployees + 1,
+      netWorth: 10000000, // 1000万円
+      revenue: 18000000, // 1800万円
+      profit: 7200000, // 720万円
       phase: "創業期",
     },
     {
       year: 3,
-      netWorth: 10000000,
-      revenue: 15000000, // 1500万円
-      profit: 2000000, // 200万円以上
-      employees: initialEmployees + 2,
+      netWorth: 15000000, // 1500万円
+      revenue: 24000000, // 2400万円
+      profit: 9600000, // 960万円
       phase: "創業期",
     },
     {
       year: 4,
-      netWorth: 15000000,
-      revenue: 18000000, // 1800万円
-      profit: 2000000, // 200万円以上
-      employees: initialEmployees + 3,
+      netWorth: 20000000, // 2000万円
+      revenue: 30000000, // 3000万円
+      profit: 12000000, // 1200万円
       phase: "転換期",
     },
     {
       year: 5,
-      netWorth: 20000000,
-      revenue: 22000000, // 2200万円
-      profit: 2000000, // 200万円以上
-      employees: initialEmployees + 4,
+      netWorth: 25000000, // 2500万円
+      revenue: 36000000, // 3600万円
+      profit: 14400000, // 1440万円
       phase: "転換期",
     },
     {
       year: 6,
-      netWorth: 26000000,
-      revenue: 30000000, // 3000万円
-      profit: 8000000, // 800万円以上
-      employees: initialEmployees + 6,
+      netWorth: 30000000, // 3000万円
+      revenue: 42000000, // 4200万円
+      profit: 16800000, // 1680万円
       phase: "成長期",
     },
     {
       year: 7,
-      netWorth: 32000000,
-      revenue: 35000000, // 3500万円
-      profit: 8000000, // 800万円以上
-      employees: initialEmployees + 8,
+      netWorth: 35000000, // 3500万円
+      revenue: 48000000, // 4800万円
+      profit: 19200000, // 1920万円
       phase: "成長期",
     },
     {
       year: 8,
-      netWorth: 38000000,
-      revenue: 40000000, // 4000万円
-      profit: 8000000, // 800万円以上
-      employees: initialEmployees + 10,
+      netWorth: 40000000, // 4000万円
+      revenue: 54000000, // 5400万円
+      profit: 21600000, // 2160万円
       phase: "成長期",
     },
     {
       year: 9,
-      netWorth: 44000000,
-      revenue: 45000000, // 4500万円
-      profit: 8000000, // 800万円以上
-      employees: initialEmployees + 12,
+      netWorth: 45000000, // 4500万円
+      revenue: 60000000, // 6000万円
+      profit: 24000000, // 2400万円
       phase: "成長期",
     },
     {
       year: 10,
-      netWorth: 50000000, // 5000万円の目標
-      revenue: 50000000, // 5000万円
-      profit: 8000000, // 800万円以上
-      employees: initialEmployees + 15,
+      netWorth: 50000000, // 5000万円
+      revenue: 66000000, // 6600万円
+      profit: 26400000, // 2640万円
       phase: "成長期",
     },
-  ]);
+  ],
+};
+
+const Roadmap: React.FC = () => {
+  // アニメーション用の状態
+  const [yearlyProgress, setYearlyProgress] = useState(0);
+  const [tenYearProgress, setTenYearProgress] = useState(0);
+
+  // ローディング状態
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // 進捗計算用の状態（デモデータで初期化）
+  const [currentYearData, setCurrentYearData] = useState(
+    DEMO_ROADMAP_DATA.currentYearData
+  );
+  const [tenYearData, setTenYearData] = useState(DEMO_ROADMAP_DATA.tenYearData);
+
+  // ユーザーID保持用
+  const [userId, setUserId] = useState<string>("");
+
+  // 事業年度開始年月の状態
+  const [fiscalYearStartMonth, setFiscalYearStartMonth] = useState<number>(
+    DEMO_ROADMAP_DATA.fiscalYearStartMonth
+  );
+  const [fiscalYearStartYear, setFiscalYearStartYear] = useState<number>(
+    DEMO_ROADMAP_DATA.fiscalYearStartYear
+  );
+
+  const [targets, setTargets] = useState<YearlyTarget[]>(
+    DEMO_ROADMAP_DATA.yearlyTargets
+  );
+  const [originalTargets, setOriginalTargets] = useState<YearlyTarget[]>(
+    DEMO_ROADMAP_DATA.yearlyTargets
+  );
 
   const phases = [
-    { name: "創業期", years: "1年目〜3年目", profitTarget: "200万円/年" },
-    { name: "転換期", years: "4年目〜5年目", profitTarget: "200万円/年" },
-    { name: "成長期", years: "6年目〜10年目", profitTarget: "800万円/年" },
+    { name: "創業期", years: "1年目〜3年目" },
+    { name: "転換期", years: "4年目〜5年目" },
+    { name: "成長期", years: "6年目〜10年目" },
   ];
+
+  // デモデータを読み込み
+  useEffect(() => {
+    const loadDemoData = async () => {
+      // cookieからuserIdを取得
+      const userId = getCookie("userId");
+      if (userId) {
+        setUserId(userId);
+      } else {
+        console.log(
+          "デモモード: ユーザーIDが見つかりませんが、処理を続行します"
+        );
+      }
+
+      try {
+        setIsLoading(true);
+
+        // デモ用の遅延
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+
+        console.log("デモロードマップデータ読み込み完了");
+      } catch (err) {
+        console.error("デモロードマップデータの読み込みエラー:", err);
+        setError("データの読み込みに失敗しました");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadDemoData();
+  }, []);
 
   const handleTargetChange = (
     year: number,
@@ -131,15 +207,93 @@ const Roadmap: React.FC = () => {
     );
   };
 
-  const runGoalReset = () => {
-    // 目標再設定ロジック（実際の実装では複雑な計算を行う）
-    alert("目標を再設定しました。");
+  // 値が変更されているかどうかを判定する関数
+  const isValueChanged = (year: number, field: keyof YearlyTarget): boolean => {
+    const currentTarget = targets.find((t) => t.year === year);
+    const originalTarget = originalTargets.find((t) => t.year === year);
+
+    if (!currentTarget || !originalTarget) return false;
+
+    return currentTarget[field] !== originalTarget[field];
+  };
+
+  // 変更されたinputのクラス名を取得する関数
+  const getInputClassName = (
+    year: number,
+    field: keyof YearlyTarget
+  ): string => {
+    const baseClass = "input-field w-full text-sm";
+    const changedClass = "bg-blue-50 border-blue-300";
+
+    return isValueChanged(year, field)
+      ? `${baseClass} ${changedClass}`
+      : baseClass;
+  };
+
+  // 目標が変更されているかどうかを確認する関数
+  const hasChanges = (): boolean => {
+    for (const target of targets) {
+      const originalTarget = originalTargets.find(
+        (t) => t.year === target.year
+      );
+      if (!originalTarget) continue;
+
+      if (
+        target.netWorth !== originalTarget.netWorth ||
+        target.revenue !== originalTarget.revenue ||
+        target.profit !== originalTarget.profit
+      ) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  // 保存ボタン押下時の処理
+  const handleSave = async () => {
+    // 変更がない場合はアラートを表示
+    if (!hasChanges()) {
+      alert("目標が変更されていません");
+      return;
+    }
+
+    const userId = getCookie("userId");
+    if (!userId) {
+      console.log("デモモード: ユーザーIDが見つかりませんが、処理を続行します");
+    }
+
+    try {
+      setIsSaving(true);
+
+      // デモ用の遅延
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      console.log("デモ目標保存:", {
+        changedTargets: targets.filter((target, index) => {
+          const originalTarget = originalTargets[index];
+          return (
+            target.revenue !== originalTarget.revenue ||
+            target.profit !== originalTarget.profit ||
+            target.netWorth !== originalTarget.netWorth
+          );
+        }),
+      });
+
+      // 更新が成功したら、現在の目標を新しいオリジナル目標として設定
+      setOriginalTargets([...targets]);
+      alert("目標が正常に保存されました (デモモード)");
+    } catch (err) {
+      console.error("デモ目標保存エラー:", err);
+      alert("目標の保存に失敗しました");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // アニメーション効果
   useEffect(() => {
-    const targetYearlyProgress = 25.0;
-    const targetTenYearProgress = 10.0;
+    const targetYearlyProgress = currentYearData.progress;
+    const targetTenYearProgress = tenYearData.progress;
 
     const yearlyTimer = setTimeout(() => {
       let progress = 0;
@@ -148,6 +302,10 @@ const Roadmap: React.FC = () => {
         setYearlyProgress(progress);
         if (progress >= targetYearlyProgress) {
           clearInterval(yearlyInterval);
+          // 進捗が0%の場合、確実に0%と表示されるようにする
+          if (targetYearlyProgress === 0) {
+            setYearlyProgress(0);
+          }
         }
       }, 20);
     }, 300);
@@ -159,6 +317,10 @@ const Roadmap: React.FC = () => {
         setTenYearProgress(progress);
         if (progress >= targetTenYearProgress) {
           clearInterval(tenYearInterval);
+          // 進捗が0%の場合、確実に0%と表示されるようにする
+          if (targetTenYearProgress === 0) {
+            setTenYearProgress(0);
+          }
         }
       }, 40);
     }, 800);
@@ -167,7 +329,37 @@ const Roadmap: React.FC = () => {
       clearTimeout(yearlyTimer);
       clearTimeout(tenYearTimer);
     };
-  }, []);
+  }, [currentYearData.progress, tenYearData.progress]);
+
+  // ローディング表示
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-text/70">データを読み込み中...</p>
+          <p className="text-sm text-blue-600 mt-2">(デモモード)</p>
+        </div>
+      </div>
+    );
+  }
+
+  // エラー表示
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="btn-primary"
+          >
+            再読み込み
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -175,20 +367,17 @@ const Roadmap: React.FC = () => {
         <div className="flex items-center space-x-3">
           <Navigation className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-text">
-            ロードマップ設定
+            ロードマップ設定 (デモモード)
           </h1>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           <button
-            onClick={runGoalReset}
-            className="btn-secondary flex items-center justify-center space-x-2 text-sm"
+            className="btn-primary flex items-center justify-center space-x-2 text-sm"
+            onClick={handleSave}
+            disabled={isSaving}
           >
-            <Calculator className="h-4 w-4" />
-            <span>目標再設定</span>
-          </button>
-          <button className="btn-primary flex items-center justify-center space-x-2 text-sm">
             <Save className="h-4 w-4" />
-            <span>保存</span>
+            <span>{isSaving ? "保存中..." : "保存"}</span>
           </button>
         </div>
       </div>
@@ -240,7 +429,9 @@ const Roadmap: React.FC = () => {
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
                     <div className="text-lg font-bold text-primary">
-                      {yearlyProgress.toFixed(1)}%
+                      {yearlyProgress === 0
+                        ? "0.0%"
+                        : `${yearlyProgress.toFixed(1)}%`}
                     </div>
                     <div className="text-xs text-gray-600">今年度進捗</div>
                   </div>
@@ -248,7 +439,9 @@ const Roadmap: React.FC = () => {
               </div>
             </div>
             <div className="text-center">
-              <p className="text-sm text-text/70">500万 / 2000万</p>
+              <p className="text-sm text-text/70">
+                {currentYearData.actual}万 / {currentYearData.target}万
+              </p>
             </div>
           </div>
 
@@ -286,7 +479,9 @@ const Roadmap: React.FC = () => {
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
                     <div className="text-lg font-bold text-primary">
-                      {tenYearProgress.toFixed(1)}%
+                      {tenYearProgress === 0
+                        ? "0.0%"
+                        : `${tenYearProgress.toFixed(1)}%`}
                     </div>
                     <div className="text-xs text-gray-600">10年進捗</div>
                   </div>
@@ -294,7 +489,9 @@ const Roadmap: React.FC = () => {
               </div>
             </div>
             <div className="text-center">
-              <p className="text-sm text-text/70">500万 / 5000万</p>
+              <p className="text-sm text-text/70">
+                {tenYearData.actual}万 / {tenYearData.target}万
+              </p>
             </div>
           </div>
         </div>
@@ -325,7 +522,14 @@ const Roadmap: React.FC = () => {
                 className="border border-border rounded-lg p-3 sm:p-4"
               >
                 <h4 className="text-sm sm:text-base font-medium text-text mb-3">
-                  {target.year}年目
+                  {target.year}年目（{fiscalYearStartYear + target.year - 1}年
+                  {fiscalYearStartMonth}月〜
+                  {fiscalYearStartMonth === 1
+                    ? `${fiscalYearStartYear + target.year}年12月`
+                    : `${fiscalYearStartYear + target.year}年${
+                        fiscalYearStartMonth - 1
+                      }月`}
+                  ）
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
@@ -342,7 +546,7 @@ const Roadmap: React.FC = () => {
                           Number(e.target.value) * 10000
                         )
                       }
-                      className="input-field w-full text-sm"
+                      className={getInputClassName(target.year, "netWorth")}
                     />
                   </div>
                   <div>
@@ -359,7 +563,7 @@ const Roadmap: React.FC = () => {
                           Number(e.target.value) * 10000
                         )
                       }
-                      className="input-field w-full text-sm"
+                      className={getInputClassName(target.year, "revenue")}
                     />
                   </div>
                   <div className="sm:col-span-2">
@@ -376,7 +580,7 @@ const Roadmap: React.FC = () => {
                           Number(e.target.value) * 10000
                         )
                       }
-                      className="input-field w-full text-sm"
+                      className={getInputClassName(target.year, "profit")}
                     />
                   </div>
                 </div>
@@ -403,7 +607,11 @@ const Roadmap: React.FC = () => {
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={targets}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-                <XAxis dataKey="year" stroke="#333333" />
+                <XAxis
+                  dataKey="year"
+                  stroke="#333333"
+                  tickFormatter={(value) => `${value}年`}
+                />
                 <YAxis
                   stroke="#333333"
                   domain={[0, 50000000]} // 5000万円をMAXに設定
@@ -414,6 +622,7 @@ const Roadmap: React.FC = () => {
                     `${(value / 10000).toLocaleString()}万円`,
                     "",
                   ]}
+                  labelFormatter={(label) => `${label}年目`}
                   labelStyle={{ color: "#333333" }}
                 />
                 <Line
@@ -435,7 +644,6 @@ const Roadmap: React.FC = () => {
             <div className="space-y-3">
               {phases.map((phase, _) => (
                 <div key={phase.name} className="flex items-center space-x-3">
-                  <div className="w-4 h-4 rounded-full bg-gray-400"></div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
                       <span className="font-medium text-text">
@@ -445,9 +653,6 @@ const Roadmap: React.FC = () => {
                         ({phase.years})
                       </span>
                     </div>
-                    <p className="text-sm text-text/60">
-                      目標 事業の利益{phase.profitTarget}
-                    </p>
                   </div>
                 </div>
               ))}

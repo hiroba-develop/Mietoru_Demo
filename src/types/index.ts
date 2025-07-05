@@ -158,17 +158,18 @@ export interface AuthResponse {
 
 // 初期設定関連の型定義
 export interface InitialSetup {
+  userName: string; // ユーザー名を追加
+  companyName: string; // 会社名（必須に変更）
+  phoneNumber: string; // 電話番号を追加
   currentAssets: number;
   companySize: CompanySize;
-  companyName?: string; // 会社名を追加（任意項目）
   fiscalYearStartMonth: number;
-  employeeCount: number;
+  fiscalYearStartYear: number; // 事業年度開始年を追加
   industry: Industry;
   businessExperience: BusinessExperience;
   financialKnowledge: FinancialKnowledge;
   priorityGoals: PriorityGoal[];
   longTermGoal: LongTermGoal;
-  rankingSettings: RankingSettings; // ランキング設定を追加
 }
 
 export type CompanySize =

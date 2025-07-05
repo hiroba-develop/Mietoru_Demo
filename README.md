@@ -48,13 +48,67 @@ cd mietoru
 npm install
 ```
 
-3. 開発サーバーを起動
+3. Google OAuth 設定
+
+#### Google Cloud Console での設定
+
+1. [Google Cloud Console](https://console.cloud.google.com/) にアクセス
+2. 新しいプロジェクトを作成または既存のプロジェクトを選択
+3. "APIs & Services"→"Credentials"に移動
+4. "+ CREATE CREDENTIALS"→"OAuth client ID"を選択
+5. アプリケーションタイプを"Web application"に設定
+6. "Authorized JavaScript origins"に以下を追加：
+   - `http://localhost:5173` (開発環境)
+   - 本番環境のドメイン
+7. "Authorized redirect URIs"に以下を追加：
+   - `http://localhost:5173` (開発環境)
+   - 本番環境のドメイン
+8. 作成されたクライアント ID をコピー
+
+#### 環境変数の設定
+
+`.env` ファイルを作成し、以下を設定：
+
+```env
+# Google OAuth設定
+VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+
+# API設定
+VITE_API_BASE_URL=http://localhost:3000/api
+```
+
+4. 開発サーバーを起動
 
 ```bash
 npm run dev
 ```
 
 4. ブラウザで http://localhost:5173 を開く
+
+## 🔐 Google SSO 実装詳細
+
+このアプリケーションでは、Google Identity Services (GIS) を使用して Google SSO を実装しています。
+
+### 実装内容
+
+- **Google One Tap 認証**: 自動的にポップアップ表示される認証
+- **JWT トークン処理**: Google から返される JWT トークンの自動パース
+- **セキュアな認証フロー**: 最新の Google 認証仕様に準拠
+- **セッション管理**: ログアウト時の Google セッション無効化
+
+### セキュリティ考慮事項
+
+- **本番環境**: JWT トークンの検証をバックエンドで行ってください
+- **HTTPS 必須**: 本番環境では HTTPS 環境での使用が必要です
+- **CSP 設定**: 適切な Content Security Policy ヘッダーを設定してください
+- **トークン検証**: 受信した JWT トークンは必ずサーバーサイドで検証してください
+
+### 実装ファイル
+
+- `src/contexts/AuthContext.tsx` - 認証ロジック
+- `src/pages/Login.tsx` - ログイン画面
+- `src/types/google.d.ts` - Google APIs 型定義
+- `index.html` - Google Identity Services スクリプト読み込み
 
 ### ビルド
 

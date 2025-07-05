@@ -14,27 +14,62 @@ import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import Setup from "./pages/Setup";
 import Ranking from "./pages/Ranking";
+import TaxAccountantDashboard from "./pages/TaxAccountantDashboard";
+import { useEffect } from "react";
 
 // 認証が必要なページをラップするコンポーネント
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, shouldRedirectToLogin, shouldRedirectToSetup } =
+    useAuth();
+
+  console.log("ProtectedRoute: 認証状態チェック", {
+    user: !!user,
+    isLoading,
+    shouldRedirectToLogin,
+    shouldRedirectToSetup,
+    userIsSetupComplete: user?.isSetupComplete,
+  });
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+          <p className="text-gray-600">読み込み中...</p>
+          <p className="text-sm text-blue-600 mt-2">(デモモード)</p>
+        </div>
       </div>
     );
   }
 
-  if (!user) {
-    return <Navigate to="/mietoru/login" replace />;
+  // cookieに「userId」キーが無い場合は、必ずlogin画面に遷移
+  if (shouldRedirectToLogin) {
+    console.log("ProtectedRoute: ログイン画面にリダイレクト");
+    return <Navigate to="/login" replace />;
   }
 
+  // cookieに「settingFlg」キーの「settingFlg」が0の場合は必ずセットアップ画面に遷移
+  if (shouldRedirectToSetup) {
+    console.log("ProtectedRoute: セットアップ画面にリダイレクト");
+    return <Navigate to="/setup" replace />;
+  }
+
+  // ユーザーが存在しない場合はログイン画面に遷移
+  if (!user) {
+    console.log(
+      "ProtectedRoute: ユーザーが存在しないためログイン画面にリダイレクト"
+    );
+    return <Navigate to="/login" replace />;
+  }
+
+  // セットアップが未完了の場合はセットアップ画面に遷移
   if (!user.isSetupComplete) {
-    return <Navigate to="/mietoru/setup" replace />;
+    console.log(
+      "ProtectedRoute: セットアップ未完了のためセットアップ画面にリダイレクト"
+    );
+    return <Navigate to="/setup" replace />;
   }
 
   return <>{children}</>;
@@ -42,17 +77,50 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
 
 // メインアプリケーションコンポーネント
 const AppContent: React.FC = () => {
+  // 検索エンジンボット対策の強化
+  useEffect(() => {
+    // User-Agentベースでのボット検出
+    const userAgent = navigator.userAgent.toLowerCase();
+    const isBot = /bot|crawler|spider|crawling/i.test(userAgent);
+
+    if (isBot) {
+      // ボットの場合は空のページを表示
+      document.body.innerHTML = `
+        <div style="display: flex; justify-content: center; align-items: center; height: 100vh; font-family: Arial, sans-serif;">
+          <div style="text-align: center;">
+            <h1>会員限定サイト</h1>
+            <p>このサイトは会員限定です。</p>
+            <p>アクセスには認証が必要です。</p>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    // メタタグの動的追加（念のため）
+    const metaRobots = document.querySelector('meta[name="robots"]');
+    if (!metaRobots) {
+      const meta = document.createElement("meta");
+      meta.name = "robots";
+      meta.content = "noindex, nofollow, noarchive, nosnippet, noimageindex";
+      document.head.appendChild(meta);
+    }
+
+    // デモモード用のページタイトル設定
+    document.title = "ミエトル - 経営ダッシュボード (デモ版)";
+  }, []);
+
   return (
     <Routes>
       {/* ログイン画面 */}
-      <Route path="/mietoru/login" element={<Login />} />
+      <Route path="/login" element={<Login />} />
 
       {/* 初期設定画面 */}
-      <Route path="/mietoru/setup" element={<Setup />} />
+      <Route path="/setup" element={<Setup />} />
 
       {/* 認証が必要なページ */}
       <Route
-        path="/mietoru"
+        path="/"
         element={
           <ProtectedRoute>
             <Layout>
@@ -62,7 +130,7 @@ const AppContent: React.FC = () => {
         }
       />
       <Route
-        path="/mietoru/roadmap"
+        path="/roadmap"
         element={
           <ProtectedRoute>
             <Layout>
@@ -72,7 +140,7 @@ const AppContent: React.FC = () => {
         }
       />
       <Route
-        path="/mietoru/budget-actual"
+        path="/budgetActual"
         element={
           <ProtectedRoute>
             <Layout>
@@ -82,7 +150,7 @@ const AppContent: React.FC = () => {
         }
       />
       <Route
-        path="/mietoru/support"
+        path="/support"
         element={
           <ProtectedRoute>
             <Layout>
@@ -92,7 +160,7 @@ const AppContent: React.FC = () => {
         }
       />
       <Route
-        path="/mietoru/settings"
+        path="/settings"
         element={
           <ProtectedRoute>
             <Layout>
@@ -102,7 +170,7 @@ const AppContent: React.FC = () => {
         }
       />
       <Route
-        path="/mietoru/ranking"
+        path="/ranking"
         element={
           <ProtectedRoute>
             <Layout>
@@ -111,9 +179,16 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         }
       />
-
-      {/* デフォルトリダイレクト */}
-      <Route path="/" element={<Navigate to="/mietoru/login" replace />} />
+      <Route
+        path="/taxAccountant"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <TaxAccountantDashboard />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 };

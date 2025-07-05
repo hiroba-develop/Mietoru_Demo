@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { Navigate } from "react-router-dom";
-import { Trophy, Shield, Users, Info } from "lucide-react";
+
 import type {
   InitialSetup,
   CompanySize,
@@ -11,15 +11,43 @@ import type {
   SetupStep,
 } from "../types";
 
+// cookieを取得するユーティリティ関数
+const getCookie = (name: string): string | null => {
+  const nameEQ = name + "=";
+  const ca = document.cookie.split(";");
+  for (let i = 0; i < ca.length; i++) {
+    let c = ca[i];
+    while (c.charAt(0) === " ") c = c.substring(1, c.length);
+    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
+  }
+  return null;
+};
+
 const Setup: React.FC = () => {
-  const { user, completeSetup, isLoading } = useAuth();
+  const {
+    user,
+    completeSetup,
+    isLoading: authLoading,
+    shouldRedirectToSetup,
+  } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+
+  console.log("Setup: 認証状態チェック", {
+    user: !!user,
+    authLoading,
+    shouldRedirectToSetup,
+    userIsSetupComplete: user?.isSetupComplete,
+  });
+
   const [setupData, setSetupData] = useState<InitialSetup>({
+    userName: "",
+    companyName: "",
+    phoneNumber: "",
     currentAssets: 0,
     companySize: "個人事業主",
-    companyName: "",
     fiscalYearStartMonth: 4,
-    employeeCount: 1,
+    fiscalYearStartYear: new Date().getFullYear(),
     industry: "IT・ソフトウェア",
     businessExperience: "1年未満",
     financialKnowledge: "初心者",
@@ -29,35 +57,33 @@ const Setup: React.FC = () => {
       targetNetWorth: 50000000, // 5000万円
       description: "10年で純資産5000万円を達成する",
     },
-    rankingSettings: {
-      isParticipating: true,
-      isAnonymous: false,
-      allowBenchmarking: true,
-      notificationEnabled: true,
-    },
   });
 
-  // ログインしていない場合はリダイレクト
-  if (!user && !isLoading) {
-    return <Navigate to="/mietoru/login" replace />;
+  // ログインしていない場合はリダイレクト（ただし、shouldRedirectToSetupがtrueの場合は除く）
+  if (!user && !authLoading && !shouldRedirectToSetup) {
+    console.log("Setup: ユーザーが存在しないためログイン画面にリダイレクト");
+    return <Navigate to="/login" replace />;
   }
 
-  // 既に設定完了済みの場合はダッシュボードへ
-  if (user?.isSetupComplete) {
-    return <Navigate to="/mietoru" replace />;
+  // 既に設定完了済みの場合はダッシュボードへ（ただし、shouldRedirectToSetupがtrueの場合は除く）
+  if (user?.isSetupComplete && !shouldRedirectToSetup) {
+    console.log(
+      "Setup: セットアップ完了済みのためダッシュボードにリダイレクト"
+    );
+    return <Navigate to="/" replace />;
   }
 
   const steps: SetupStep[] = [
     {
       id: 0,
-      title: "基本情報",
-      description: "事業の基本情報を教えてください",
+      title: "ユーザー情報",
+      description: "あなたの基本情報を教えてください",
       completed: false,
     },
     {
       id: 1,
-      title: "財務情報",
-      description: "現在の資産状況を教えてください",
+      title: "基本情報",
+      description: "事業の基本情報を教えてください",
       completed: false,
     },
     {
@@ -68,12 +94,6 @@ const Setup: React.FC = () => {
     },
     {
       id: 3,
-      title: "ランキング設定",
-      description: "ランキング・表彰機能の設定を行います",
-      completed: false,
-    },
-    {
-      id: 4,
       title: "設定完了",
       description: "設定内容を確認して完了します",
       completed: false,
@@ -129,9 +149,31 @@ const Setup: React.FC = () => {
   };
 
   const handleComplete = async () => {
-    // 実際のアプリでは、設定データをAPIに送信
-    console.log("Setup completed:", setupData);
-    completeSetup(setupData);
+    try {
+      setIsLoading(true);
+
+      // cookieからuserIdを取得
+      const userId = getCookie("userId");
+
+      if (!userId) {
+        console.log(
+          "デモモード: ユーザーIDが見つかりませんが、処理を続行します"
+        );
+      }
+
+      // デモ用の遅延
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      console.log("デモセットアップ完了:", setupData);
+
+      // 設定完了
+      completeSetup(setupData);
+    } catch (error) {
+      console.error("デモセットアップエラー:", error);
+      alert("設定の保存中にエラーが発生しました。");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -144,24 +186,62 @@ const Setup: React.FC = () => {
 
   const renderStepContent = () => {
     switch (currentStep) {
-      case 0: // 基本情報
+      case 0: // ユーザー情報
         return (
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                会社名（任意）
+                ユーザー名
               </label>
               <input
                 type="text"
-                value={setupData.companyName || ""}
+                value={setupData.userName}
+                onChange={(e) =>
+                  setSetupData({ ...setupData, userName: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
+                placeholder="お名前を入力してください"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                会社名
+              </label>
+              <input
+                type="text"
+                value={setupData.companyName}
                 onChange={(e) =>
                   setSetupData({ ...setupData, companyName: e.target.value })
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
-                placeholder="会社名を入力してください（任意）"
+                placeholder="会社名を入力してください"
+                required
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                電話番号
+              </label>
+              <input
+                type="tel"
+                value={setupData.phoneNumber}
+                onChange={(e) =>
+                  setSetupData({ ...setupData, phoneNumber: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
+                placeholder="電話番号を入力してください"
+                required
+              />
+            </div>
+          </div>
+        );
+
+      case 1: // 基本情報
+        return (
+          <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3">
                 企業規模
@@ -209,11 +289,37 @@ const Setup: React.FC = () => {
               </select>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  事業年度開始月
-                </label>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                事業年度開始年月
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <select
+                  value={setupData.fiscalYearStartYear}
+                  onChange={(e) =>
+                    setSetupData({
+                      ...setupData,
+                      fiscalYearStartYear: parseInt(e.target.value),
+                      // 年が変更された時、月の制限を考慮
+                      fiscalYearStartMonth:
+                        parseInt(e.target.value) === new Date().getFullYear() &&
+                        setupData.fiscalYearStartMonth >
+                          new Date().getMonth() + 1
+                          ? new Date().getMonth() + 1
+                          : setupData.fiscalYearStartMonth,
+                    })
+                  }
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
+                >
+                  {Array.from(
+                    { length: 11 },
+                    (_, i) => new Date().getFullYear() - 10 + i
+                  ).map((year) => (
+                    <option key={year} value={year}>
+                      {year}年
+                    </option>
+                  ))}
+                </select>
                 <select
                   value={setupData.fiscalYearStartMonth}
                   onChange={(e) =>
@@ -222,88 +328,24 @@ const Setup: React.FC = () => {
                       fiscalYearStartMonth: parseInt(e.target.value),
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
                 >
-                  {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                  {Array.from(
+                    {
+                      length:
+                        setupData.fiscalYearStartYear ===
+                        new Date().getFullYear()
+                          ? new Date().getMonth() + 1
+                          : 12,
+                    },
+                    (_, i) => i + 1
+                  ).map((month) => (
                     <option key={month} value={month}>
                       {month}月
                     </option>
                   ))}
                 </select>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  従業員数
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={setupData.employeeCount}
-                  onChange={(e) =>
-                    setSetupData({
-                      ...setupData,
-                      employeeCount: parseInt(e.target.value) || 1,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary"
-                />
-              </div>
-            </div>
-          </div>
-        );
-
-      case 1: // 財務情報
-        return (
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                現在の総資産（個人資産含む）
-              </label>
-              <p className="text-sm text-gray-500 mb-3">
-                事業資金や個人資産を含めた現在の総資産額を入力してください
-              </p>
-              <div className="relative">
-                <input
-                  type="number"
-                  min="0"
-                  step="10000"
-                  value={setupData.currentAssets}
-                  onChange={(e) =>
-                    setSetupData({
-                      ...setupData,
-                      currentAssets: parseInt(e.target.value) || 0,
-                    })
-                  }
-                  className="w-full px-3 py-3 pr-12 border border-gray-300 rounded-md focus:outline-none focus:ring-primary focus:border-primary text-right text-lg"
-                  placeholder="0"
-                />
-                <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                  円
-                </span>
-              </div>
-              {setupData.currentAssets > 0 && (
-                <p className="text-sm text-gray-600 mt-2">
-                  現在の資産: {formatCurrency(setupData.currentAssets)}
-                </p>
-              )}
-            </div>
-
-            <div className="bg-blue-50 rounded-lg p-4">
-              <h4 className="font-medium text-blue-900 mb-2">長期目標</h4>
-              <p className="text-blue-800 text-sm">
-                10年後の目標純資産:{" "}
-                <span className="font-bold">
-                  {formatCurrency(setupData.longTermGoal.targetNetWorth)}
-                </span>
-              </p>
-              <p className="text-blue-700 text-xs mt-1">
-                必要な資産増加額:{" "}
-                {formatCurrency(
-                  setupData.longTermGoal.targetNetWorth -
-                    setupData.currentAssets
-                )}
-              </p>
             </div>
           </div>
         );
@@ -367,221 +409,7 @@ const Setup: React.FC = () => {
           </div>
         );
 
-      case 3: // ランキング設定
-        return (
-          <div className="space-y-6">
-            {/* ランキング機能の説明 */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <Info className="h-5 w-5 text-blue-600" />
-                <h4 className="font-medium text-blue-900">
-                  ランキング・表彰機能について
-                </h4>
-              </div>
-              <p className="text-blue-800 text-sm">
-                他の企業と匿名でパフォーマンスを比較し、モチベーション向上や業界ベンチマークの確認ができます。
-                いつでも設定で変更可能です。
-              </p>
-            </div>
-
-            {/* ランキング参加設定 */}
-            <div className="space-y-4">
-              <div className="flex items-start space-x-3">
-                <Trophy className="h-6 w-6 text-yellow-600 mt-1 flex-shrink-0" />
-                <div className="flex-1">
-                  <h4 className="font-medium text-gray-900 mb-2">
-                    ランキング参加
-                  </h4>
-                  <p className="text-sm text-gray-600 mb-4">
-                    企業間パフォーマンス比較ランキングに参加しますか？
-                  </p>
-
-                  <div className="space-y-3">
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="ranking_participation"
-                        checked={
-                          setupData.rankingSettings.isParticipating === true
-                        }
-                        onChange={() =>
-                          setSetupData({
-                            ...setupData,
-                            rankingSettings: {
-                              ...setupData.rankingSettings,
-                              isParticipating: true,
-                            },
-                          })
-                        }
-                        className="mr-3 text-primary focus:ring-primary"
-                      />
-                      <div>
-                        <span className="font-medium text-gray-900">
-                          参加する
-                        </span>
-                        <p className="text-sm text-gray-600">
-                          ランキングに参加し、業界ベンチマークや比較機能を利用
-                        </p>
-                      </div>
-                    </label>
-
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="ranking_participation"
-                        checked={
-                          setupData.rankingSettings.isParticipating === false
-                        }
-                        onChange={() =>
-                          setSetupData({
-                            ...setupData,
-                            rankingSettings: {
-                              ...setupData.rankingSettings,
-                              isParticipating: false,
-                              isAnonymous: false,
-                              allowBenchmarking: false,
-                            },
-                          })
-                        }
-                        className="mr-3 text-primary focus:ring-primary"
-                      />
-                      <div>
-                        <span className="font-medium text-gray-900">
-                          参加しない
-                        </span>
-                        <p className="text-sm text-gray-600">
-                          ランキング機能を使用せず、個人利用のみ
-                        </p>
-                      </div>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* ランキング参加時の詳細設定 */}
-              {setupData.rankingSettings.isParticipating && (
-                <div className="bg-gray-50 rounded-lg p-4 space-y-4">
-                  <h5 className="font-medium text-gray-900 mb-3">
-                    プライバシー設定
-                  </h5>
-
-                  {/* 匿名表示設定 */}
-                  <div className="flex items-start space-x-3">
-                    <Shield className="h-5 w-5 text-green-600 mt-1 flex-shrink-0" />
-                    <div className="flex-1">
-                      <h6 className="font-medium text-gray-900 mb-2">
-                        匿名表示
-                      </h6>
-                      <div className="space-y-2">
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            name="anonymous_setting"
-                            checked={
-                              setupData.rankingSettings.isAnonymous === false
-                            }
-                            onChange={() =>
-                              setSetupData({
-                                ...setupData,
-                                rankingSettings: {
-                                  ...setupData.rankingSettings,
-                                  isAnonymous: false,
-                                },
-                              })
-                            }
-                            className="mr-2 text-primary focus:ring-primary"
-                          />
-                          <div>
-                            <span className="text-sm font-medium text-gray-900">
-                              実名表示
-                            </span>
-                            <p className="text-xs text-gray-600">
-                              ランキングで会社名を表示（推奨）
-                            </p>
-                          </div>
-                        </label>
-
-                        <label className="flex items-center">
-                          <input
-                            type="radio"
-                            name="anonymous_setting"
-                            checked={
-                              setupData.rankingSettings.isAnonymous === true
-                            }
-                            onChange={() =>
-                              setSetupData({
-                                ...setupData,
-                                rankingSettings: {
-                                  ...setupData.rankingSettings,
-                                  isAnonymous: true,
-                                },
-                              })
-                            }
-                            className="mr-2 text-primary focus:ring-primary"
-                          />
-                          <div>
-                            <span className="text-sm font-medium text-gray-900">
-                              匿名表示
-                            </span>
-                            <p className="text-xs text-gray-600">
-                              ランキングで「A社」等の匿名で表示
-                            </p>
-                          </div>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* ベンチマーク参加設定 */}
-                  <div className="flex items-start space-x-3">
-                    <Users className="h-5 w-5 text-blue-600 mt-1 flex-shrink-0" />
-                    <div className="flex-1">
-                      <label className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={setupData.rankingSettings.allowBenchmarking}
-                          onChange={(e) =>
-                            setSetupData({
-                              ...setupData,
-                              rankingSettings: {
-                                ...setupData.rankingSettings,
-                                allowBenchmarking: e.target.checked,
-                              },
-                            })
-                          }
-                          className="mr-3 rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <div>
-                          <span className="font-medium text-gray-900">
-                            ベンチマーク参加
-                          </span>
-                          <p className="text-sm text-gray-600">
-                            業界平均データの計算に参加し、より正確なベンチマークを提供
-                          </p>
-                        </div>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ランキング算定基準の説明 */}
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <h5 className="font-medium text-yellow-900 mb-2">
-                  総合スコア算定基準
-                </h5>
-                <div className="grid grid-cols-2 gap-2 text-sm text-yellow-800">
-                  <div>• 純資産形成率: 40%</div>
-                  <div>• 売上成長率: 25%</div>
-                  <div>• 利益率改善: 20%</div>
-                  <div>• 目標達成率: 15%</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case 4: // 完了
+      case 3: // 設定完了
         return (
           <div className="space-y-6">
             <div className="text-center">
@@ -612,8 +440,16 @@ const Setup: React.FC = () => {
               <h4 className="font-medium text-gray-900">設定内容の確認</h4>
               <div className="space-y-2">
                 <p>
+                  <span className="text-gray-600">ユーザー名:</span>{" "}
+                  {setupData.userName}
+                </p>
+                <p>
                   <span className="text-gray-600">会社名:</span>{" "}
-                  {setupData.companyName || "未設定"}
+                  {setupData.companyName}
+                </p>
+                <p>
+                  <span className="text-gray-600">電話番号:</span>{" "}
+                  {setupData.phoneNumber}
                 </p>
                 <p>
                   <span className="text-gray-600">企業規模:</span>{" "}
@@ -636,23 +472,14 @@ const Setup: React.FC = () => {
                   {setupData.financialKnowledge}
                 </p>
                 <p>
+                  <span className="text-gray-600">事業年度開始:</span>{" "}
+                  {setupData.fiscalYearStartYear}年
+                  {setupData.fiscalYearStartMonth}月
+                </p>
+                <p>
                   <span className="text-gray-600">10年後の目標:</span>{" "}
                   {formatCurrency(setupData.longTermGoal.targetNetWorth)}
                 </p>
-                <p>
-                  <span className="text-gray-600">ランキング参加:</span>{" "}
-                  {setupData.rankingSettings.isParticipating
-                    ? "参加する"
-                    : "参加しない"}
-                </p>
-                {setupData.rankingSettings.isParticipating && (
-                  <p>
-                    <span className="text-gray-600">表示設定:</span>{" "}
-                    {setupData.rankingSettings.isAnonymous
-                      ? "匿名表示"
-                      : "実名表示"}
-                  </p>
-                )}
               </div>
             </div>
           </div>
@@ -663,10 +490,16 @@ const Setup: React.FC = () => {
     }
   };
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+          <p className="text-gray-600">
+            {isLoading ? "設定を保存中..." : "読み込み中..."}
+          </p>
+          <p className="text-sm text-blue-600 mt-2">(デモモード)</p>
+        </div>
       </div>
     );
   }
@@ -676,11 +509,16 @@ const Setup: React.FC = () => {
       <div className="max-w-2xl mx-auto">
         {/* ヘッダー */}
         <div className="text-center mb-6 sm:mb-8">
-          <div className="mx-auto h-10 w-10 sm:h-12 sm:w-12 bg-primary rounded-full flex items-center justify-center mb-4">
-            <span className="text-white text-lg sm:text-xl font-bold">ミ</span>
+          <div className="mx-auto h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center mb-4">
+            <div
+              className="w-full h-full bg-contain bg-no-repeat bg-center"
+              style={{ backgroundImage: "url(/mietoru_favicon.svg)" }}
+              role="img"
+              aria-label="ミエトル"
+            />
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-            初期設定
+            初期設定 (デモモード)
           </h1>
           <p className="text-sm sm:text-base text-gray-600 mt-2">
             あなたに最適化された経営サポートのための設定を行います
@@ -747,9 +585,10 @@ const Setup: React.FC = () => {
           ) : (
             <button
               onClick={handleComplete}
-              className="px-4 sm:px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm sm:text-base"
+              disabled={isLoading}
+              className="px-4 sm:px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
             >
-              設定完了
+              {isLoading ? "設定中..." : "設定完了"}
             </button>
           )}
         </div>

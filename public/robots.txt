@@ -1,0 +1,23 @@
+# Mietoru - 会員限定サイト
+# 検索エンジンによるクローリングを禁止
+User-agent: *
+Disallow: /
+
+# Sitemap の無効化（会員限定のため）
+# Sitemap: (設定なし)
+
+# 特定のボットに対する追加制限
+User-agent: Googlebot
+Disallow: /
+
+User-agent: Bingbot
+Disallow: /
+
+User-agent: Slurp
+Disallow: /
+
+User-agent: DuckDuckBot
+Disallow: /
+
+User-agent: Baiduspider
+Disallow: / 
