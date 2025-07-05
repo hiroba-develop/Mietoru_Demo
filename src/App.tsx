@@ -194,9 +194,12 @@ const AppContent: React.FC = () => {
 };
 
 function App() {
+  // Viteのベースパスを取得
+  const basename = import.meta.env.BASE_URL;
+
   return (
     <AuthProvider>
-      <Router>
+      <Router basename={basename}>
         <AppContent />
       </Router>
     </AuthProvider>
