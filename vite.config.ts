@@ -15,7 +15,7 @@ export default defineConfig({
       },
     },
   ],
-  base: "/",
+  base: "/Mietoru_Demo/",
   server: {
     port: 5173,
     // 開発サーバーでのセキュリティヘッダー設定
