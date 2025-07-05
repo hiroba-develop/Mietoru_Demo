@@ -13,7 +13,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import headerIcon from "../assets/header_icon.png";
+import headerIcon from "../../public/header_icon.png";
 
 interface LayoutProps {
   children: React.ReactNode;
