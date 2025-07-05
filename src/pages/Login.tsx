@@ -57,9 +57,6 @@ const Login: React.FC = () => {
 
     try {
       if (isLoginMode) {
-        // デモログイン処理
-        console.log("デモログイン試行:", { email, password });
-
         // デモ用の遅延
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -69,8 +66,6 @@ const Login: React.FC = () => {
         );
 
         if (demoUser) {
-          console.log("デモログイン成功:", demoUser);
-
           await login(
             email,
             password,
@@ -108,14 +103,10 @@ const Login: React.FC = () => {
     try {
       // JWT をデコードしてユーザー情報を取得
       const decoded: any = jwtDecode(credentialResponse.credential);
-      console.log("Google認証成功:", decoded);
       const googleId = decoded.sub;
 
       // デモ用の遅延
       await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // デモ用のGoogle認証処理（常に成功）
-      console.log("デモGoogle認証処理");
 
       // デモ用のユーザーID生成
       const userId = `google-user-${googleId}`;
@@ -123,12 +114,6 @@ const Login: React.FC = () => {
       // 既存ユーザーかどうかのデモ判定
       const isExistingUser = Math.random() > 0.5; // 50%の確率で既存ユーザー
       const settingFlg = isExistingUser ? "1" : "0";
-
-      console.log("デモGoogleログイン成功", {
-        userId,
-        settingFlg,
-        isExistingUser,
-      });
 
       loginWithGoogleCredential(
         credentialResponse.credential,
@@ -144,7 +129,6 @@ const Login: React.FC = () => {
 
   /** ログイン失敗時の処理 */
   const handleLoginError = () => {
-    console.log("ログインに失敗しました");
     setError("Googleログインに失敗しました");
   };
 
@@ -156,7 +140,9 @@ const Login: React.FC = () => {
           <div className="mx-auto h-16 w-16 flex items-center justify-center mb-6">
             <div
               className="w-full h-full bg-contain bg-no-repeat bg-center"
-              style={{ backgroundImage: "url(/mietoru_favicon.svg)" }}
+              style={{
+                backgroundImage: "url(./src/assets/mietoru_favicon.svg)",
+              }}
               role="img"
               aria-label="ミエトル"
             />

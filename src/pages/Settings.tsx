@@ -10,18 +10,6 @@ import type {
   TaskType,
 } from "../types";
 
-// cookieを取得するためのユーティリティ関数
-const getCookie = (name: string): string | null => {
-  const nameEQ = name + "=";
-  const ca = document.cookie.split(";");
-  for (let i = 0; i < ca.length; i++) {
-    let c = ca[i];
-    while (c.charAt(0) === " ") c = c.substring(1, c.length);
-    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-  }
-  return null;
-};
-
 interface Task {
   id: number;
   taskId?: string;
@@ -205,22 +193,11 @@ const Settings: React.FC = () => {
   // デモデータを初期化
   useEffect(() => {
     const loadDemoData = async () => {
-      // cookieからuserIdを取得
-      const userId = getCookie("userId");
-
-      if (!userId) {
-        console.log(
-          "デモモード: ユーザーIDが見つかりませんが、処理を続行します"
-        );
-      }
-
       try {
         setLoading(true);
 
         // デモ用の遅延
         await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        console.log("デモ設定データを読み込み中...");
 
         // ユーザー情報を設定
         setUserInfo({
@@ -254,8 +231,6 @@ const Settings: React.FC = () => {
         };
 
         setSetupData(convertedSetupData);
-
-        console.log("デモ設定データ読み込み完了:", convertedSetupData);
       } catch (err) {
         console.error("デモ設定データの読み込みエラー:", err);
         setError("設定データの読み込み中にエラーが発生しました");
@@ -269,14 +244,6 @@ const Settings: React.FC = () => {
 
   const handleAddTask = async () => {
     if (newTaskName.trim()) {
-      const userId = getCookie("userId");
-
-      if (!userId) {
-        console.log(
-          "デモモード: ユーザーIDが見つかりませんが、処理を続行します"
-        );
-      }
-
       const newTask: Task = {
         id: Date.now(),
         taskId: `task-demo-${Date.now()}`,
@@ -290,8 +257,6 @@ const Settings: React.FC = () => {
         // デモ用の遅延
         await new Promise((resolve) => setTimeout(resolve, 500));
 
-        console.log("デモタスク追加:", newTask);
-
         setTasks([...tasks, newTask]);
         setNewTaskName("");
         setNewTaskDay(1);
@@ -303,12 +268,6 @@ const Settings: React.FC = () => {
   };
 
   const handleDeleteTask = async (id: number) => {
-    const userId = getCookie("userId");
-
-    if (!userId) {
-      console.log("デモモード: ユーザーIDが見つかりませんが、処理を続行します");
-    }
-
     const taskToDelete = tasks.find((task) => task.id === id);
     if (!taskToDelete) {
       alert("削除対象のタスクが見つかりません");
@@ -319,8 +278,6 @@ const Settings: React.FC = () => {
       // デモ用の遅延
       await new Promise((resolve) => setTimeout(resolve, 300));
 
-      console.log("デモタスク削除:", taskToDelete);
-
       setTasks(tasks.filter((task) => task.id !== id));
     } catch (err) {
       console.error("デモタスク削除エラー:", err);
@@ -329,12 +286,6 @@ const Settings: React.FC = () => {
   };
 
   const handleTaskToggle = async (id: number) => {
-    const userId = getCookie("userId");
-
-    if (!userId) {
-      console.log("デモモード: ユーザーIDが見つかりませんが、処理を続行します");
-    }
-
     const taskToUpdate = tasks.find((task) => task.id === id);
     if (!taskToUpdate) {
       alert("更新対象のタスクが見つかりません");
@@ -344,8 +295,6 @@ const Settings: React.FC = () => {
     try {
       // デモ用の遅延
       await new Promise((resolve) => setTimeout(resolve, 300));
-
-      console.log("デモタスク切り替え:", taskToUpdate);
 
       setTasks(
         tasks.map((task) =>
@@ -367,14 +316,6 @@ const Settings: React.FC = () => {
 
   const saveEditingTask = async () => {
     if (editingTaskId && editingTaskName.trim()) {
-      const userId = getCookie("userId");
-
-      if (!userId) {
-        console.log(
-          "デモモード: ユーザーIDが見つかりませんが、処理を続行します"
-        );
-      }
-
       const taskToEdit = tasks.find((t) => t.id === editingTaskId);
       if (!taskToEdit) {
         alert("編集対象のタスクが見つかりません");
@@ -384,12 +325,6 @@ const Settings: React.FC = () => {
       try {
         // デモ用の遅延
         await new Promise((resolve) => setTimeout(resolve, 300));
-
-        console.log("デモタスク編集:", {
-          id: editingTaskId,
-          name: editingTaskName,
-          day: editingTaskDay,
-        });
 
         setTasks(
           tasks.map((task) =>
@@ -415,14 +350,6 @@ const Settings: React.FC = () => {
   };
 
   const handleSaveSettings = async () => {
-    const userId = getCookie("userId");
-
-    if (!setupData || !userId) {
-      console.log(
-        "デモモード: 保存に必要な情報が不足していますが、処理を続行します"
-      );
-    }
-
     if (!setupData) {
       alert("保存に必要な情報が不足しています");
       return;
@@ -431,8 +358,6 @@ const Settings: React.FC = () => {
     try {
       // デモ用の遅延
       await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      console.log("デモ設定保存:", setupData);
 
       updateUserSetup(setupData);
       alert("設定を保存しました。(デモモード)");

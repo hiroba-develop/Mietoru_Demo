@@ -24,14 +24,6 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
   const { user, isLoading, shouldRedirectToLogin, shouldRedirectToSetup } =
     useAuth();
 
-  console.log("ProtectedRoute: 認証状態チェック", {
-    user: !!user,
-    isLoading,
-    shouldRedirectToLogin,
-    shouldRedirectToSetup,
-    userIsSetupComplete: user?.isSetupComplete,
-  });
-
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -46,29 +38,21 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
 
   // cookieに「userId」キーが無い場合は、必ずlogin画面に遷移
   if (shouldRedirectToLogin) {
-    console.log("ProtectedRoute: ログイン画面にリダイレクト");
     return <Navigate to="/login" replace />;
   }
 
   // cookieに「settingFlg」キーの「settingFlg」が0の場合は必ずセットアップ画面に遷移
   if (shouldRedirectToSetup) {
-    console.log("ProtectedRoute: セットアップ画面にリダイレクト");
     return <Navigate to="/setup" replace />;
   }
 
   // ユーザーが存在しない場合はログイン画面に遷移
   if (!user) {
-    console.log(
-      "ProtectedRoute: ユーザーが存在しないためログイン画面にリダイレクト"
-    );
     return <Navigate to="/login" replace />;
   }
 
   // セットアップが未完了の場合はセットアップ画面に遷移
   if (!user.isSetupComplete) {
-    console.log(
-      "ProtectedRoute: セットアップ未完了のためセットアップ画面にリダイレクト"
-    );
     return <Navigate to="/setup" replace />;
   }
 
@@ -196,7 +180,6 @@ const AppContent: React.FC = () => {
 function App() {
   // Viteのベースパスを取得
   const basename = import.meta.env.BASE_URL;
-  console.log("basename", basename);
 
   return (
     <AuthProvider>

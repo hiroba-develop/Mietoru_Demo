@@ -98,12 +98,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     try {
-      console.log("AuthContext: デモ認証状態復元", {
-        settingFlg: settingFlg,
-        settingFlgType: typeof settingFlg,
-        userId: userId,
-      });
-
       // ユーザー情報を設定
       const isSetupComplete = settingFlg === "1";
       const userToSet: AuthUser = {
@@ -119,14 +113,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       // cookieの「settingFlg」が"0"の場合は必ずセットアップ画面に遷移
       if (settingFlg === "0") {
-        console.log(
-          "AuthContext: settingFlgが'0'のため、セットアップ画面にリダイレクト"
-        );
         setShouldRedirectToSetup(true);
-      } else {
-        console.log("AuthContext: settingFlgが'0'ではない", {
-          settingFlg: settingFlg,
-        });
       }
     } catch (err) {
       console.error("保存された認証情報の復元に失敗:", err);
@@ -255,8 +242,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!user) return;
 
     try {
-      console.log("デモ用設定データを読み込み中...");
-
       // デモ用の遅延
       await new Promise((resolve) => setTimeout(resolve, 500));
 
@@ -287,8 +272,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           description: "10年で純資産5000万円を達成する",
         },
       };
-
-      console.log("デモ設定データ読み込み完了:", setupData);
       setUserSetup(setupData);
     } catch (error) {
       console.error("デモユーザー設定の読み込みに失敗:", error);

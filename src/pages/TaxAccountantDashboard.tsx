@@ -298,8 +298,6 @@ const TaxAccountantDashboard: React.FC = () => {
 
         // デモ用の遅延
         await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        console.log("デモクライアント管理データ読み込み完了");
       } catch (err) {
         console.error("デモデータ読み込みエラー:", err);
         setError("データの読み込み中にエラーが発生しました");
@@ -358,17 +356,6 @@ const TaxAccountantDashboard: React.FC = () => {
     try {
       // デモ用の遅延
       await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      const currentDate = new Date();
-      const year = currentDate.getFullYear();
-      const month = currentDate.getMonth() + 1;
-
-      console.log("デモコメント保存:", {
-        userId: selectedUser.userId,
-        comment: currentComment.trim(),
-        year,
-        month,
-      });
 
       const currentDateStr = new Date().toISOString().split("T")[0];
       const currentYearMonth = currentDateStr.substring(0, 7); // YYYY-MM形式

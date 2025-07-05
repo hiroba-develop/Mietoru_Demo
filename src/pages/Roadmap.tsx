@@ -10,18 +10,6 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-// cookieを取得するためのユーティリティ関数
-const getCookie = (name: string): string | null => {
-  const nameEQ = name + "=";
-  const ca = document.cookie.split(";");
-  for (let i = 0; i < ca.length; i++) {
-    let c = ca[i];
-    while (c.charAt(0) === " ") c = c.substring(1, c.length);
-    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-  }
-  return null;
-};
-
 interface YearlyTarget {
   year: number;
   netWorth: number; // 純資産
@@ -162,23 +150,12 @@ const Roadmap: React.FC = () => {
   // デモデータを読み込み
   useEffect(() => {
     const loadDemoData = async () => {
-      // cookieからuserIdを取得
-      const userId = getCookie("userId");
-      if (userId) {
-        console.log("デモモード: ユーザーIDが見つかりました");
-      } else {
-        console.log("デモモード: ユーザーIDが見つかりません");
-      }
-
       try {
         setIsLoading(true);
 
         // デモ用の遅延
         await new Promise((resolve) => setTimeout(resolve, 1500));
-
-        console.log("デモロードマップデータ読み込み完了");
       } catch (err) {
-        console.error("デモロードマップデータの読み込みエラー:", err);
         setError("データの読み込みに失敗しました");
       } finally {
         setIsLoading(false);
@@ -250,27 +227,11 @@ const Roadmap: React.FC = () => {
       return;
     }
 
-    const userId = getCookie("userId");
-    if (!userId) {
-      console.log("デモモード: ユーザーIDが見つかりませんが、処理を続行します");
-    }
-
     try {
       setIsSaving(true);
 
       // デモ用の遅延
       await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      console.log("デモ目標保存:", {
-        changedTargets: targets.filter((target, index) => {
-          const originalTarget = originalTargets[index];
-          return (
-            target.revenue !== originalTarget.revenue ||
-            target.profit !== originalTarget.profit ||
-            target.netWorth !== originalTarget.netWorth
-          );
-        }),
-      });
 
       // 更新が成功したら、現在の目標を新しいオリジナル目標として設定
       setOriginalTargets([...targets]);

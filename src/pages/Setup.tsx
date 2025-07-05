@@ -11,18 +11,6 @@ import type {
   SetupStep,
 } from "../types";
 
-// cookieを取得するユーティリティ関数
-const getCookie = (name: string): string | null => {
-  const nameEQ = name + "=";
-  const ca = document.cookie.split(";");
-  for (let i = 0; i < ca.length; i++) {
-    let c = ca[i];
-    while (c.charAt(0) === " ") c = c.substring(1, c.length);
-    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-  }
-  return null;
-};
-
 const Setup: React.FC = () => {
   const {
     user,
@@ -32,13 +20,6 @@ const Setup: React.FC = () => {
   } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-
-  console.log("Setup: 認証状態チェック", {
-    user: !!user,
-    authLoading,
-    shouldRedirectToSetup,
-    userIsSetupComplete: user?.isSetupComplete,
-  });
 
   const [setupData, setSetupData] = useState<InitialSetup>({
     userName: "",
@@ -61,15 +42,11 @@ const Setup: React.FC = () => {
 
   // ログインしていない場合はリダイレクト（ただし、shouldRedirectToSetupがtrueの場合は除く）
   if (!user && !authLoading && !shouldRedirectToSetup) {
-    console.log("Setup: ユーザーが存在しないためログイン画面にリダイレクト");
     return <Navigate to="/login" replace />;
   }
 
   // 既に設定完了済みの場合はダッシュボードへ（ただし、shouldRedirectToSetupがtrueの場合は除く）
   if (user?.isSetupComplete && !shouldRedirectToSetup) {
-    console.log(
-      "Setup: セットアップ完了済みのためダッシュボードにリダイレクト"
-    );
     return <Navigate to="/" replace />;
   }
 
@@ -152,19 +129,8 @@ const Setup: React.FC = () => {
     try {
       setIsLoading(true);
 
-      // cookieからuserIdを取得
-      const userId = getCookie("userId");
-
-      if (!userId) {
-        console.log(
-          "デモモード: ユーザーIDが見つかりませんが、処理を続行します"
-        );
-      }
-
       // デモ用の遅延
       await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      console.log("デモセットアップ完了:", setupData);
 
       // 設定完了
       completeSetup(setupData);
@@ -512,7 +478,9 @@ const Setup: React.FC = () => {
           <div className="mx-auto h-10 w-10 sm:h-12 sm:w-12 flex items-center justify-center mb-4">
             <div
               className="w-full h-full bg-contain bg-no-repeat bg-center"
-              style={{ backgroundImage: "url(/mietoru_favicon.svg)" }}
+              style={{
+                backgroundImage: "url(./src/assets/mietoru_favicon.svg)",
+              }}
               role="img"
               aria-label="ミエトル"
             />

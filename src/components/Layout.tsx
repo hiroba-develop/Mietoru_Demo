@@ -13,6 +13,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import headerIcon from "../assets/header_icon.png";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -40,7 +41,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     try {
       const role = getCookie("role");
       setUserRole(role);
-      console.log("Layout: ユーザーロール取得:", role);
     } catch (err) {
       console.error("cookieの解析に失敗:", err);
     }
@@ -104,7 +104,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </button>
             <div className="flex items-center ml-2 lg:ml-0">
               <img
-                src="/header_icon.png"
+                src={headerIcon}
                 alt="ミエトル"
                 className="h-8 sm:h-10 lg:h-12"
               />

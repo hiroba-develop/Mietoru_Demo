@@ -328,8 +328,6 @@ const Dashboard: React.FC = () => {
         setLoading(true);
         // デモ用の遅延
         await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        console.log("Demo data loaded successfully");
       } catch (err) {
         console.error("デモデータ読み込みエラー:", err);
         setError("デモデータの読み込み中にエラーが発生しました");
@@ -435,7 +433,6 @@ const Dashboard: React.FC = () => {
 
     // デモ用の遅延
     await new Promise((resolve) => setTimeout(resolve, 300));
-    console.log(`Task ${id} toggled in demo mode`);
   };
 
   // 前月比計算用のヘルパー関数
@@ -480,12 +477,6 @@ const Dashboard: React.FC = () => {
 
   const previousMonthData = getPreviousMonthData();
 
-  // デバッグ情報をコンソールに出力
-  console.log("Current Month Data:", currentMonthData);
-  console.log("Previous Month Data:", previousMonthData);
-  console.log("Sales Data:", salesData);
-  console.log("Profits Data:", profitsData);
-
   // 利益達成率を計算
   const profitAchievementRate =
     currentMonthData.profitTarget > 0
@@ -506,12 +497,6 @@ const Dashboard: React.FC = () => {
     previousProfitTarget > 0
       ? (previousMonthData.profitResult / previousProfitTarget) * 100
       : 0;
-
-  console.log("Current Profit Achievement Rate:", profitAchievementRate);
-  console.log(
-    "Previous Profit Achievement Rate:",
-    previousProfitAchievementRate
-  );
 
   // KPIデータ（デモデータから取得）
   const kpiData = [
@@ -566,17 +551,6 @@ const Dashboard: React.FC = () => {
           : "text-red-500",
     },
   ];
-
-  // KPIデータのデバッグ情報
-  console.log(
-    "KPI Data:",
-    kpiData.map((kpi) => ({
-      title: kpi.title,
-      value: kpi.value,
-      change: kpi.change,
-      trend: kpi.trend,
-    }))
-  );
 
   // ロードマップ関連データ（実際の事業期間に基づいて生成）
   const monthlyProgress = useMemo((): MonthlyProgress[] => {
