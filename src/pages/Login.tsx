@@ -1,9 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { Navigate } from "react-router-dom";
-import type { CredentialResponse } from "@react-oauth/google";
-// import { GoogleLogin } from "@react-oauth/google";
-import { jwtDecode } from "jwt-decode";
 
 // デモユーザーデータ
 const DEMO_USERS = [
@@ -31,7 +28,7 @@ const DEMO_USERS = [
 ];
 
 const Login: React.FC = () => {
-  const { user, isLoading, login, loginWithGoogleCredential } = useAuth();
+  const { user, isLoading, login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -92,45 +89,6 @@ const Login: React.FC = () => {
           : "新規登録に失敗しました"
       );
     }
-  };
-
-  /** ログイン成功時の処理 */
-  const handleLoginSuccess = async (credentialResponse: CredentialResponse) => {
-    if (!credentialResponse.credential) {
-      setError("認証情報が取得できませんでした");
-      return;
-    }
-
-    try {
-      // JWT をデコードしてユーザー情報を取得
-      const decoded: any = jwtDecode(credentialResponse.credential);
-      const googleId = decoded.sub;
-
-      // デモ用の遅延
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // デモ用のユーザーID生成
-      const userId = `google-user-${googleId}`;
-
-      // 既存ユーザーかどうかのデモ判定
-      const isExistingUser = Math.random() > 0.5; // 50%の確率で既存ユーザー
-      const settingFlg = isExistingUser ? "1" : "0";
-
-      loginWithGoogleCredential(
-        credentialResponse.credential,
-        settingFlg,
-        userId,
-        "0" // 一般ユーザー
-      );
-    } catch (err) {
-      console.error("Google認証の処理に失敗:", err);
-      setError("Google認証の処理に失敗しました");
-    }
-  };
-
-  /** ログイン失敗時の処理 */
-  const handleLoginError = () => {
-    setError("Googleログインに失敗しました");
   };
 
   return (
