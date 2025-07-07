@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import type { CredentialResponse } from "@react-oauth/google";
-import { GoogleLogin } from "@react-oauth/google";
+// import { GoogleLogin } from "@react-oauth/google";
 import { jwtDecode } from "jwt-decode";
 
 // デモユーザーデータ
@@ -37,6 +37,7 @@ const Login: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoginMode, setIsLoginMode] = useState(true);
+  const [showTooltip, setShowTooltip] = useState(false);
 
   // すでにログイン済みの場合はリダイレクト
   if (user && !isLoading) {
@@ -207,12 +208,27 @@ const Login: React.FC = () => {
             </div>
 
             {/* Google認証ボタン */}
-            <div className="flex justify-center">
-              <GoogleLogin
-                onSuccess={handleLoginSuccess}
-                onError={handleLoginError}
-                text={isLoginMode ? "signin_with" : "signup_with"}
-              />
+            <div className="flex justify-center relative">
+              <button
+                className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 opacity-60 cursor-not-allowed"
+                onMouseEnter={() => setShowTooltip(true)}
+                onMouseLeave={() => setShowTooltip(false)}
+                onClick={(e) => e.preventDefault()}
+                aria-disabled="true"
+              >
+                <img
+                  src="https://developers.google.com/identity/images/g-logo.png"
+                  alt="Google"
+                  className="w-5 h-5 mr-2"
+                />
+                <span>{isLoginMode ? "Googleでログイン" : "Googleで登録"}</span>
+              </button>
+              {showTooltip && (
+                <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-3 py-2 rounded whitespace-nowrap z-50 pointer-events-none">
+                  デモ版では使用不可です
+                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-gray-800"></div>
+                </div>
+              )}
             </div>
 
             {/* 区切り線 */}
