@@ -181,6 +181,7 @@ function App() {
   // Viteのベースパスを取得
   const basename = import.meta.env.BASE_URL;
 
+  console.log(basename);
   return (
     <AuthProvider>
       <Router basename={basename}>
