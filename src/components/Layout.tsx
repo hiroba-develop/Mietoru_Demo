@@ -11,7 +11,6 @@ import {
   LogOut,
   Trophy,
   UserCheck,
-  Navigation,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import headerIcon from "../../public/header_icon.png";
