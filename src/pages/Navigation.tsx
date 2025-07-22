@@ -123,9 +123,11 @@ const QuarterlyTaskDisplay: React.FC<{
 const Navigation = () => {
   const [currentYear] = useState(2025);
   const [currentQuarter] = useState(3);
-  const [selectedYear, setSelectedYear] = useState(2025);
+  const [selectedYear, setSelectedYear] = useState(currentYear);
   const [hoveredQuarter, setHoveredQuarter] = useState<string | null>(null);
-  const [pinnedQuarter, setPinnedQuarter] = useState<string | null>(null);
+  const [pinnedQuarter, setPinnedQuarter] = useState<string | null>(
+    `${currentYear}-${currentQuarter}`
+  );
   const [viewMode, setViewMode] = useState("quarter");
   const [checkedItems, setCheckedItems] = useState<{ [key: string]: boolean }>(
     {}
