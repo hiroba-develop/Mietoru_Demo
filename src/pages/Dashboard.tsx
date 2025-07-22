@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { TrendingUp, CheckCircle, Star, Info, AlertCircle } from "lucide-react";
+import { TrendingUp, CheckCircle, Star, AlertCircle } from "lucide-react";
 import Navigation from "./Navigation";
 
 // デモデータ用の型定義
@@ -239,9 +239,6 @@ const DEMO_TAX_COMMENTS: TaxAccountantComment[] = [
       "前月の利益が若干下がりましたが、全体的には順調な成長を維持しています。夏に向けて売上増加を期待しつつ、無駄な経費の見直しを行いましょう。",
   },
 ];
-
-// デモ設定データ
-const DEMO_FISCAL_YEAR_START_YEAR = 2025;
 
 const Dashboard: React.FC = () => {
   // 状態管理

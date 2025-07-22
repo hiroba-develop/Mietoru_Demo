@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState } from "react";
 import {
   ChevronUp,
   ChevronDown,
@@ -491,7 +491,7 @@ const Navigation = () => {
               })}
 
               {/* 接続線（道路） */}
-              {years.map((year, index) => {
+              {years.map((_, index) => {
                 if (index === years.length - 1) return null;
 
                 let currentRow, currentCol, nextRow, nextCol;
