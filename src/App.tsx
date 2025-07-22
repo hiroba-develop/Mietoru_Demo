@@ -15,6 +15,7 @@ import Login from "./pages/Login";
 import Setup from "./pages/Setup";
 import Ranking from "./pages/Ranking";
 import TaxAccountantDashboard from "./pages/TaxAccountantDashboard";
+import Navigation from "./pages/Navigation";
 import { useEffect } from "react";
 
 // 認証が必要なページをラップするコンポーネント
@@ -119,6 +120,16 @@ const AppContent: React.FC = () => {
           <ProtectedRoute>
             <Layout>
               <Roadmap />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/navigation"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Navigation />
             </Layout>
           </ProtectedRoute>
         }

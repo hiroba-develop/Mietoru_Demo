@@ -11,6 +11,7 @@ import {
   LogOut,
   Trophy,
   UserCheck,
+  Navigation,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import headerIcon from "../../public/header_icon.png";
@@ -58,6 +59,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       name: "ロードマップ設定",
       href: "/roadmap",
       icon: Map,
+      disabled: false,
+    },
+    {
+      name: "ナビゲーション",
+      href: "/navigation",
+      icon: Navigation,
       disabled: false,
     },
     {
