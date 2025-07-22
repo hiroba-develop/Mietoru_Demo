@@ -62,12 +62,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       disabled: false,
     },
     {
-      name: "ナビゲーション",
-      href: "/navigation",
-      icon: Navigation,
-      disabled: false,
-    },
-    {
       name: "クライアント管理",
       href: "/taxAccountant",
       icon: UserCheck,
