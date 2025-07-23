@@ -1,7 +1,5 @@
 import React, { useState } from "react";
 import {
-  ChevronUp,
-  ChevronDown,
   Navigation as NavigationIcon,
   MapPin,
   Target,
@@ -13,6 +11,8 @@ import {
   Calendar,
   Clock,
   Info,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 interface Advice {
@@ -133,6 +133,67 @@ const Navigation = () => {
     {}
   );
 
+  const roadRef = React.useRef<SVGPathElement>(null);
+  const [roadLength, setRoadLength] = React.useState(0);
+
+  const years = React.useMemo(
+    () => Array.from({ length: 11 }, (_, i) => 2024 + i),
+    []
+  );
+
+  const points = React.useMemo(
+    () =>
+      years.map((_, index) => {
+        let row, col;
+        if (index < 5) {
+          row = 0;
+          col = index;
+        } else if (index < 10) {
+          row = 1;
+          col = index - 5;
+        } else {
+          row = 2;
+          col = 0; // 2034年は左端
+        }
+
+        // 奇数行は右から左へ（蛇行）
+        const adjustedCol = row % 2 === 1 ? 4 - col : col;
+
+        const x = 80 + adjustedCol * 110;
+        const y = 70 + row * 90;
+        return { x, y, row };
+      }),
+    [years]
+  );
+
+  const roadPathD = React.useMemo(
+    () =>
+      points
+        .map((p, i) => {
+          if (i === 0) return `M ${p.x} ${p.y}`;
+          const prev = points[i - 1];
+
+          if (p.row === prev.row) {
+            return `L ${p.x} ${p.y}`;
+          } else {
+            // 行をまたぐ接続（カーブ）
+            const cp1x = prev.x;
+            const cp1y = prev.y + 45;
+            const cp2x = p.x;
+            const cp2y = p.y - 45;
+            return `C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p.x} ${p.y}`;
+          }
+        })
+        .join(" "),
+    [points]
+  );
+
+  React.useEffect(() => {
+    if (roadRef.current) {
+      setRoadLength(roadRef.current.getTotalLength());
+    }
+  }, [roadRef, roadPathD]);
+
   const quarterAdvice: QuarterAdvices = {
     1: {
       title: "事業をスタートさせよう",
@@ -228,6 +289,22 @@ const Navigation = () => {
   };
 
   const getAdviceForYear = (year: number) => {
+    if (year === 2034) {
+      const goalMessageBefore =
+        "目標に向けて歩むあなたを、この場所で待っています。";
+      const goalMessageAfter =
+        "10年間、お疲れさまでした！結果はいかがでしたか？次のステージに向けて、また一緒に歩んでいきましょう。";
+      const message =
+        currentYear >= 2034 ? goalMessageAfter : goalMessageBefore;
+
+      const goalAdvice: Advice = {
+        title: "10年間のゴール",
+        icon: Target,
+        advice: message,
+        details: [],
+      };
+      return { 1: goalAdvice, 2: goalAdvice, 3: goalAdvice, 4: goalAdvice };
+    }
     if (year === 2024) return quarterAdvice;
     if (year === 2025) return secondYearAdvice;
     return secondYearAdvice;
@@ -239,6 +316,7 @@ const Navigation = () => {
     } else {
       setSelectedYear((prev) => Math.max(prev - 1, 2024));
     }
+    setPinnedQuarter(null);
   };
 
   const isCurrentPosition = (year: number, quarter: number) => {
@@ -294,7 +372,8 @@ const Navigation = () => {
   };
 
   if (viewMode === "year") {
-    const years = Array.from({ length: 11 }, (_, i) => 2024 + i);
+    const progressRatio = totalProgress / 100;
+    const strokeDashoffset = roadLength * (1 - progressRatio);
 
     return (
       <div
@@ -336,38 +415,70 @@ const Navigation = () => {
             >
               {/* 背景の装飾的な要素 */}
               <defs>
-                <pattern
-                  id="dots"
-                  patternUnits="userSpaceOnUse"
-                  width="20"
-                  height="20"
+                <linearGradient
+                  id="skyGradient"
+                  x1="0%"
+                  y1="0%"
+                  x2="0%"
+                  y2="100%"
                 >
-                  <circle cx="10" cy="10" r="1" fill="#67BACA" opacity="0.4" />
-                  <circle cx="5" cy="15" r="0.5" fill="#B3DBC0" opacity="0.3" />
-                  <circle cx="15" cy="5" r="0.8" fill="#67BACA" opacity="0.2" />
-                </pattern>
+                  <stop
+                    offset="0%"
+                    style={{ stopColor: "#E0F7FA", stopOpacity: 1 }}
+                  />
+                  <stop
+                    offset="100%"
+                    style={{ stopColor: "#FFFFFF", stopOpacity: 1 }}
+                  />
+                </linearGradient>
+
                 <linearGradient
                   id="roadGradient"
                   x1="0%"
                   y1="0%"
-                  x2="100%"
-                  y2="0%"
+                  x2="0%"
+                  y2="100%"
                 >
-                  <stop
-                    offset="0%"
-                    style={{ stopColor: "#67BACA", stopOpacity: 0.9 }}
-                  />
-                  <stop
-                    offset="50%"
-                    style={{ stopColor: "#B3DBC0", stopOpacity: 1 }}
-                  />
-                  <stop
-                    offset="100%"
-                    style={{ stopColor: "#67BACA", stopOpacity: 0.9 }}
-                  />
+                  <stop offset="0%" stopColor="#CFD8DC" />
+                  <stop offset="100%" stopColor="#B0BEC5" />
                 </linearGradient>
+
+                <linearGradient
+                  id="progressRoadGradient"
+                  x1="0%"
+                  y1="0%"
+                  x2="0%"
+                  y2="100%"
+                >
+                  <stop offset="0%" stopColor="#81C784" />
+                  <stop offset="100%" stopColor="#4CAF50" />
+                </linearGradient>
+
+                <filter
+                  id="nodeShadow"
+                  x="-50%"
+                  y="-50%"
+                  width="200%"
+                  height="200%"
+                >
+                  <feDropShadow
+                    dx="1"
+                    dy="2"
+                    stdDeviation="2"
+                    floodColor="#000000"
+                    floodOpacity="0.1"
+                  />
+                </filter>
+
                 <filter id="glow">
-                  <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+                  <feGaussianBlur stdDeviation="4" result="coloredBlur">
+                    <animate
+                      attributeName="stdDeviation"
+                      values="4;6;4"
+                      dur="2s"
+                      repeatCount="indefinite"
+                    />
+                  </feGaussianBlur>
                   <feMerge>
                     <feMergeNode in="coloredBlur" />
                     <feMergeNode in="SourceGraphic" />
@@ -375,225 +486,144 @@ const Navigation = () => {
                 </filter>
               </defs>
 
-              {/* 背景のドット（星空風） */}
-              <rect width="600" height="320" fill="url(#dots)" opacity="0.8" />
+              {/* 背景 */}
+              <rect width="600" height="320" fill="url(#skyGradient)" />
+
+              {/* 道路 */}
+              <path
+                d={roadPathD}
+                stroke="#90A4AE"
+                strokeWidth="14"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d={roadPathD}
+                stroke="url(#roadGradient)"
+                strokeWidth="10"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              {/* 進捗 */}
+              <path
+                ref={roadRef}
+                d={roadPathD}
+                stroke="url(#progressRoadGradient)"
+                strokeWidth="10"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeDasharray={roadLength}
+                strokeDashoffset={strokeDashoffset}
+                style={{
+                  transition: "stroke-dashoffset 1.5s ease-in-out",
+                }}
+              />
 
               {/* 年度ノード */}
-              {years.map((year, index) => {
-                // 5個ずつ2行に配置 + 最後の1個は3行目
-                let row, col;
-                if (index < 5) {
-                  row = 0;
-                  col = index;
-                } else if (index < 10) {
-                  row = 1;
-                  col = index - 5;
-                } else {
-                  row = 2;
-                  col = 0; // 2034年は左端
-                }
-
-                // 奇数行は右から左へ（蛇行）
-                const adjustedCol = row % 2 === 1 ? 4 - col : col;
-
-                const x = 80 + adjustedCol * 110;
-                const y = 70 + row * 90;
-
+              {points.map(({ x, y }, index) => {
+                const year = years[index];
                 const isPassed = isYearPassed(year);
                 const isCurrent = isYearCurrent(year);
+                const isGoal = year === 2034;
+
+                let fill = "#FFFFFF";
+                let stroke = "#B0BEC5";
+                let textColor = "#546E7A";
+
+                if (isGoal) {
+                  fill = "#FFF8E1";
+                  stroke = "#FBC02D";
+                  textColor = "#C49000";
+                } else if (isCurrent) {
+                  fill = "#E3F2FD";
+                  stroke = "#42A5F5";
+                  textColor = "#1E88E5";
+                } else if (isPassed) {
+                  fill = "#E8F5E9";
+                  stroke = "#81C784";
+                  textColor = "#4CAF50";
+                }
+
+                const radius = isCurrent ? 28 : 26;
 
                 return (
-                  <g key={year}>
-                    {/* 年度の影 */}
-                    <ellipse
-                      cx={x + 2}
-                      cy={y + 2}
-                      rx="45"
-                      ry="22"
-                      fill="#000000"
-                      opacity="0.1"
-                    />
-
-                    {/* 年度の楕円 */}
-                    <ellipse
-                      cx={x}
-                      cy={y}
-                      rx="45"
-                      ry="22"
-                      fill={
-                        isCurrent ? "#FDF6F6" : isPassed ? "#F5F5F5" : "#FFFFFF"
-                      }
-                      stroke={
-                        isCurrent ? "#FE0000" : isPassed ? "#E0E0E0" : "#E0E0E0"
-                      }
-                      strokeWidth={isCurrent ? "3" : "2"}
-                      className="cursor-pointer transition-all duration-300"
-                      onClick={() => {
-                        setSelectedYear(year);
-                        setViewMode("quarter");
-                      }}
-                      filter={isCurrent ? "url(#glow)" : "none"}
-                    />
-
-                    {/* 年度の内側の装飾 */}
+                  <g
+                    key={year}
+                    className="cursor-pointer transition-transform duration-300 ease-in-out"
+                    onClick={() => {
+                      setSelectedYear(year);
+                      setViewMode("quarter");
+                      setPinnedQuarter(null);
+                    }}
+                    filter={
+                      isCurrent || isGoal ? "url(#glow)" : "url(#nodeShadow)"
+                    }
+                  >
                     {isCurrent && (
-                      <ellipse
+                      <circle
                         cx={x}
                         cy={y}
-                        rx="38"
-                        ry="18"
+                        r={radius}
                         fill="none"
-                        stroke="#FE0000"
-                        strokeWidth="1"
-                        opacity="0.3"
-                      />
+                        stroke={stroke}
+                        strokeWidth="2"
+                      >
+                        <animate
+                          attributeName="r"
+                          from={radius}
+                          to={radius + 8}
+                          dur="1.5s"
+                          begin="0s"
+                          repeatCount="indefinite"
+                        />
+                        <animate
+                          attributeName="opacity"
+                          from="1"
+                          to="0"
+                          dur="1.5s"
+                          begin="0s"
+                          repeatCount="indefinite"
+                        />
+                      </circle>
                     )}
+                    <circle cx={x} cy={y} r={radius} fill={stroke} />
+                    <circle cx={x} cy={y} r={radius - 3} fill={fill} />
 
-                    {/* 年度ラベル */}
                     <text
                       x={x}
-                      y={y - 2}
+                      y={y + 5}
                       textAnchor="middle"
                       className="text-sm font-bold pointer-events-none"
-                      fill={
-                        isCurrent ? "#FE0000" : isPassed ? "#333333" : "#333333"
-                      }
+                      fill={textColor}
                     >
-                      {year}年
+                      {year}
                     </text>
-
-                    {/* 年度の進捗インジケーター */}
-                    {isCurrent && (
-                      <text
-                        x={x}
-                        y={y + 12}
-                        textAnchor="middle"
-                        className="text-xs pointer-events-none"
-                        fill="#FE0000"
-                        opacity="0.8"
-                      >
-                        📍 イマココ
-                      </text>
-                    )}
-
-                    {isPassed && (
-                      <text
-                        x={x}
-                        y={y + 12}
-                        textAnchor="middle"
-                        className="text-xs pointer-events-none"
-                        fill="#333333"
-                        opacity="0.6"
-                      >
-                        ✓ 完了
-                      </text>
-                    )}
                   </g>
                 );
               })}
 
-              {/* 接続線（道路） */}
-              {years.map((_, index) => {
-                if (index === years.length - 1) return null;
-
-                let currentRow, currentCol, nextRow, nextCol;
-
-                // 現在の位置計算
-                if (index < 5) {
-                  currentRow = 0;
-                  currentCol = index;
-                } else if (index < 10) {
-                  currentRow = 1;
-                  currentCol = index - 5;
-                } else {
-                  currentRow = 2;
-                  currentCol = 0;
-                }
-
-                // 次の位置計算
-                if (index + 1 < 5) {
-                  nextRow = 0;
-                  nextCol = index + 1;
-                } else if (index + 1 < 10) {
-                  nextRow = 1;
-                  nextCol = index + 1 - 5;
-                } else {
-                  nextRow = 2;
-                  nextCol = 0;
-                }
-
-                // 座標計算
-                const currentAdjustedCol =
-                  currentRow % 2 === 1 ? 4 - currentCol : currentCol;
-                const currentX = 80 + currentAdjustedCol * 110;
-                const currentY = 70 + currentRow * 90;
-
-                const nextAdjustedCol =
-                  nextRow % 2 === 1 ? 4 - nextCol : nextCol;
-                const nextX = 80 + nextAdjustedCol * 110;
-                const nextY = 70 + nextRow * 90;
-
-                if (currentRow === nextRow) {
-                  // 同じ行での接続
-                  const direction =
-                    currentAdjustedCol < nextAdjustedCol ? 1 : -1;
-                  return (
-                    <line
-                      key={`road-${index}`}
-                      x1={currentX + 45 * direction}
-                      y1={currentY}
-                      x2={nextX - 45 * direction}
-                      y2={nextY}
-                      stroke="#67BACA"
-                      strokeWidth="3"
-                      opacity="0.6"
-                    />
-                  );
-                } else {
-                  // 行をまたぐ接続（カーブ）
-                  const midX = (currentX + nextX) / 2;
-                  const midY = (currentY + nextY) / 2;
-
-                  return (
-                    <path
-                      key={`road-${index}`}
-                      d={`M ${currentX} ${currentY + 22} Q ${midX} ${
-                        midY + 30
-                      } ${nextX} ${nextY - 22}`}
-                      stroke="#67BACA"
-                      strokeWidth="3"
-                      fill="none"
-                      opacity="0.6"
-                    />
-                  );
-                }
-              })}
-
-              {/* スタート地点の装飾 */}
-              <g>
-                <text
-                  x="80"
-                  y="45"
-                  textAnchor="middle"
-                  className="text-sm font-bold"
-                  fill="#67BACA"
-                >
-                  🚀 スタート
-                </text>
-              </g>
-
-              {/* ゴール地点の装飾 */}
-              <g>
-                <text
-                  x="80"
-                  y="285"
-                  textAnchor="middle"
-                  className="text-sm font-bold"
-                  fill="#67BACA"
-                >
-                  🎯 ゴール
-                </text>
-              </g>
+              {/* スタートとゴールのラベル */}
+              <text
+                x={points[0].x}
+                y={points[0].y - 35}
+                textAnchor="middle"
+                className="text-lg font-bold"
+                fill="#67BACA"
+              >
+                🚀 Start
+              </text>
+              <text
+                x={points[points.length - 1].x}
+                y={points[points.length - 1].y + 45}
+                textAnchor="middle"
+                className="text-lg font-bold"
+                fill="#67BACA"
+              >
+                🎯 GOAL
+              </text>
             </svg>
           </div>
         </div>
@@ -675,7 +705,7 @@ const Navigation = () => {
             className="hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed p-2 rounded-lg bg-white border transition-all"
             style={{ borderColor: "#E0E0E0" }}
           >
-            <ChevronUp className="w-4 h-4" style={{ color: "#333333" }} />
+            <ChevronLeft className="w-4 h-4" style={{ color: "#333333" }} />
           </button>
 
           <div className="flex items-center space-x-2">
@@ -691,14 +721,17 @@ const Navigation = () => {
             className="hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed p-2 rounded-lg bg-white border transition-all"
             style={{ borderColor: "#E0E0E0" }}
           >
-            <ChevronDown className="w-4 h-4" style={{ color: "#333333" }} />
+            <ChevronRight className="w-4 h-4" style={{ color: "#333333" }} />
           </button>
         </div>
 
         {selectedYear !== currentYear && (
           <div className="flex justify-center mt-3">
             <button
-              onClick={() => setSelectedYear(currentYear)}
+              onClick={() => {
+                setSelectedYear(currentYear);
+                setPinnedQuarter(null);
+              }}
               className="flex items-center space-x-2 px-4 py-2 rounded-lg text-white font-medium transition-all text-sm hover:opacity-90"
               style={{ backgroundColor: "#67BACA" }}
             >
@@ -714,217 +747,296 @@ const Navigation = () => {
         style={{ backgroundColor: "#F8F9FA" }}
       >
         <div className="lg:flex lg:gap-4 p-2 lg:p-4">
-          <div className="lg:w-1/3 lg:max-h-[500px] lg:overflow-y-auto">
-            {[1, 2, 3, 4].map((quarter) => {
-              const isCurrent = isCurrentPosition(selectedYear, quarter);
-              const isComplete = isPassed(selectedYear, quarter);
-              const currentAdvice = getAdviceForYear(selectedYear);
-              const advice = currentAdvice[quarter];
-              const quarterKey = `${selectedYear}-${quarter}`;
-              const isExpanded = pinnedQuarter === quarterKey;
+          {selectedYear === 2034 ? (
+            <div className="w-full flex items-center justify-center text-center p-8">
+              <div>
+                <h2
+                  className="text-4xl font-bold mb-4"
+                  style={{ color: "#67BACA" }}
+                >
+                  GOAL
+                </h2>
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-lg text-gray-700">
+                    {currentYear >= 2034
+                      ? "10年間、お疲れさまでした！結果はいかがでしたか？次のステージに向けて、また一緒に歩んでいきましょう。"
+                      : "目標に向けて歩むあなたを、この場所で待っています。"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="lg:w-1/3 lg:max-h-[500px] lg:overflow-y-auto">
+                {[1, 2, 3, 4].map((quarter) => {
+                  const isCurrent = isCurrentPosition(selectedYear, quarter);
+                  const isComplete = isPassed(selectedYear, quarter);
+                  const currentAdvice = getAdviceForYear(selectedYear);
+                  const advice = currentAdvice[quarter];
+                  const quarterKey = `${selectedYear}-${quarter}`;
+                  const isExpanded = pinnedQuarter === quarterKey;
 
-              return (
-                <div key={quarter} className="relative">
-                  {/* 四半期間の接続線 (モバイル用) */}
-                  {quarter < 4 && (
-                    <div
-                      className="absolute left-8 top-20 w-0.5 h-4 z-0 lg:hidden"
-                      style={{
-                        backgroundColor: "#67BACA",
-                        opacity: 0.3,
-                      }}
-                    />
-                  )}
+                  return (
+                    <div key={quarter} className="relative">
+                      {/* 四半期間の接続線 (モバイル用) */}
+                      {quarter < 4 && (
+                        <div
+                          className="absolute left-8 top-20 w-0.5 h-4 z-0 lg:hidden"
+                          style={{
+                            backgroundColor: "#67BACA",
+                            opacity: 0.3,
+                          }}
+                        />
+                      )}
 
-                  <div
-                    className={`border-b cursor-pointer transition-all duration-300 hover:shadow-md relative z-10 mx-2 my-1 rounded-lg lg:mx-0`}
-                    style={{
-                      borderColor: "#E0E0E0",
-                      backgroundColor: isExpanded
-                        ? isCurrent
-                          ? "#FDF6F6"
-                          : isComplete
-                          ? "#F5F5F5"
-                          : "#FFFFFF"
-                        : hoveredQuarter === quarterKey
-                        ? isCurrent
-                          ? "#FEF2F2"
-                          : isComplete
-                          ? "#F0F0F0"
-                          : "#F8F8F8"
-                        : isCurrent
-                        ? "#FDF6F6"
-                        : isComplete
-                        ? "#F5F5F5"
-                        : "#FFFFFF",
-                      border: isCurrent
-                        ? "2px solid #FE0000"
-                        : `1px solid #E0E0E0`,
-                      boxShadow: isCurrent
-                        ? "0 0 15px rgba(254, 0, 0, 0.2)"
-                        : "none",
-                    }}
-                    onMouseEnter={() => setHoveredQuarter(quarterKey)}
-                    onMouseLeave={() => setHoveredQuarter(null)}
-                    onClick={() => {
-                      if (pinnedQuarter === quarterKey) {
-                        setPinnedQuarter(null);
-                      } else {
-                        setPinnedQuarter(quarterKey);
-                      }
-                    }}
-                  >
-                    <div className="p-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="relative">
-                          {/* アイコンの背景装飾 */}
-                          <div
-                            className={`absolute inset-0 rounded-full opacity-20 ${
-                              isCurrent ? "animate-pulse" : ""
-                            }`}
-                            style={{
-                              backgroundColor: isCurrent
-                                ? "#FE0000"
-                                : isComplete
-                                ? "#333333"
-                                : "#67BACA",
-                              transform: isCurrent
-                                ? "scale(1.4)"
-                                : "scale(1.2)",
-                            }}
-                          />
-
-                          <div className="p-3 rounded-full bg-white relative z-10 shadow-sm">
-                            <div className="w-5 h-5 flex items-center justify-center">
-                              <span
-                                className={`text-xs font-bold ${
-                                  isCurrent ? "animate-pulse" : ""
-                                }`}
-                                style={{
-                                  color: isCurrent
-                                    ? "#FE0000"
-                                    : isComplete
-                                    ? "#333333"
-                                    : "#67BACA",
-                                  fontSize: isCurrent ? "0.8rem" : "0.75rem",
-                                  fontWeight: isCurrent ? "900" : "700",
-                                }}
-                              >
-                                {quarter}Q
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="flex items-center space-x-2">
-                                <span
-                                  className="font-bold text-sm"
-                                  style={{
-                                    color: isCurrent ? "#FE0000" : "#333333",
-                                  }}
-                                >
-                                  第{quarter}四半期
-                                </span>
-                                {isCurrent && (
-                                  <span
-                                    className="text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap animate-pulse"
-                                    style={{
-                                      backgroundColor: "#FDF6F6",
-                                      color: "#FE0000",
-                                      border: "1px solid #FE0000",
-                                    }}
-                                  >
-                                    📍 イマココ
-                                  </span>
-                                )}
-                                {isComplete && (
-                                  <span
-                                    className="text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap"
-                                    style={{
-                                      backgroundColor: "#F5F5F5",
-                                      color: "#333333",
-                                    }}
-                                  >
-                                    ✓ 完了
-                                  </span>
-                                )}
-                              </div>
-                              <div
-                                className="text-sm mt-1 font-medium"
-                                style={{
-                                  color: isCurrent ? "#FE0000" : "#333333",
-                                }}
-                              >
-                                {advice.title}
-                              </div>
-                            </div>
-
-                            <div className="flex items-center space-x-2">
-                              <ChevronDown
-                                className={`w-4 h-4 transition-transform duration-200 ${
-                                  isExpanded ? "rotate-180" : ""
-                                }`}
-                                style={{
-                                  color: isCurrent ? "#FE0000" : "#333333",
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 詳細情報パネル (モバイル用) */}
-                  <div className="lg:hidden">
-                    {isExpanded && (
                       <div
-                        className="mx-2 mb-2 rounded-lg border shadow-sm"
+                        className={`border-b cursor-pointer transition-all duration-300 hover:shadow-md relative z-10 mx-2 my-1 rounded-lg lg:mx-0`}
                         style={{
                           borderColor: "#E0E0E0",
-                          backgroundColor: isCurrent
+                          backgroundColor: isExpanded
+                            ? isCurrent
+                              ? "#FEF2F2"
+                              : isComplete
+                              ? "#F3F4F6"
+                              : "#EFF6FF"
+                            : hoveredQuarter === quarterKey
+                            ? isCurrent
+                              ? "#FEF2F2"
+                              : isComplete
+                              ? "#F0F0F0"
+                              : "#F8F8F8"
+                            : isCurrent
                             ? "#FDF6F6"
                             : isComplete
                             ? "#F5F5F5"
                             : "#FFFFFF",
+                          border: isCurrent
+                            ? "2px solid #FE0000"
+                            : `1px solid #E0E0E0`,
+                          boxShadow: isCurrent
+                            ? "0 0 15px rgba(254, 0, 0, 0.2)"
+                            : "none",
+                        }}
+                        onMouseEnter={() => setHoveredQuarter(quarterKey)}
+                        onMouseLeave={() => setHoveredQuarter(null)}
+                        onClick={() => {
+                          if (pinnedQuarter === quarterKey) {
+                            setPinnedQuarter(null);
+                          } else {
+                            setPinnedQuarter(quarterKey);
+                          }
                         }}
                       >
-                        <div className="p-3 space-y-3">
+                        <div className="p-4">
+                          <div className="flex items-center space-x-3">
+                            <div className="relative">
+                              {/* アイコンの背景装飾 */}
+                              <div
+                                className={`absolute inset-0 rounded-full opacity-20 ${
+                                  isCurrent ? "animate-pulse" : ""
+                                }`}
+                                style={{
+                                  backgroundColor: isCurrent
+                                    ? "#FE0000"
+                                    : isComplete
+                                    ? "#333333"
+                                    : "#67BACA",
+                                  transform: isCurrent
+                                    ? "scale(1.4)"
+                                    : "scale(1.2)",
+                                }}
+                              />
+
+                              <div className="p-3 rounded-full bg-white relative z-10 shadow-sm">
+                                <div className="w-5 h-5 flex items-center justify-center">
+                                  <span
+                                    className={`text-xs font-bold ${
+                                      isCurrent ? "animate-pulse" : ""
+                                    }`}
+                                    style={{
+                                      color: isCurrent
+                                        ? "#FE0000"
+                                        : isComplete
+                                        ? "#333333"
+                                        : "#67BACA",
+                                      fontSize: isCurrent
+                                        ? "0.8rem"
+                                        : "0.75rem",
+                                      fontWeight: isCurrent ? "900" : "700",
+                                    }}
+                                  >
+                                    {quarter}Q
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="flex items-center space-x-2">
+                                    <span
+                                      className="font-bold text-sm"
+                                      style={{
+                                        color: isCurrent
+                                          ? "#FE0000"
+                                          : "#333333",
+                                      }}
+                                    >
+                                      第{quarter}四半期
+                                    </span>
+                                    {isComplete && (
+                                      <span
+                                        className="text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap"
+                                        style={{
+                                          backgroundColor: "#F5F5F5",
+                                          color: "#333333",
+                                        }}
+                                      >
+                                        ✓ 完了
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div
+                                    className="text-sm mt-1 font-medium"
+                                    style={{
+                                      color: isCurrent ? "#FE0000" : "#333333",
+                                    }}
+                                  >
+                                    {advice.title}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center space-x-2">
+                                  <ChevronRight
+                                    className={`w-4 h-4 transition-transform duration-200 ${
+                                      isExpanded ? "rotate-180" : ""
+                                    }`}
+                                    style={{
+                                      color: isCurrent ? "#FE0000" : "#333333",
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 詳細情報パネル (モバイル用) */}
+                      <div className="lg:hidden">
+                        {isExpanded && (
+                          <div
+                            className="mx-2 mb-2 rounded-lg border shadow-sm"
+                            style={{
+                              borderColor: "#E0E0E0",
+                              backgroundColor: isCurrent
+                                ? "#FEF2F2"
+                                : isComplete
+                                ? "#F3F4F6"
+                                : "#EFF6FF",
+                            }}
+                          >
+                            <div className="p-3 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                  <div
+                                    className="p-1 rounded-full"
+                                    style={{ backgroundColor: "#67BACA" }}
+                                  >
+                                    <MapPin className="w-3 h-3 text-white" />
+                                  </div>
+                                  <span
+                                    className="text-sm font-semibold"
+                                    style={{ color: "#333333" }}
+                                  >
+                                    {selectedYear}年 第{quarter}四半期
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPinnedQuarter(null);
+                                  }}
+                                  className="text-xs px-2 py-1 rounded-full bg-white border hover:bg-gray-50 transition-all shadow-sm"
+                                  style={{
+                                    borderColor: "#E0E0E0",
+                                    color: "#333333",
+                                  }}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+
+                              <QuarterlyTaskDisplay
+                                year={selectedYear}
+                                quarter={quarter}
+                                advice={advice}
+                                checkedItems={checkedItems}
+                                onCheckboxChange={handleCheckboxChange}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* 詳細情報パネル (PC用) */}
+              <div className="hidden lg:block lg:w-2/3">
+                {pinnedQuarter ? (
+                  (() => {
+                    const [yearStr, quarterStr] = pinnedQuarter.split("-");
+                    const year = parseInt(yearStr);
+                    const quarter = parseInt(quarterStr);
+                    const isCurrent = isCurrentPosition(year, quarter);
+                    const isComplete = isPassed(year, quarter);
+                    const advice = getAdviceForYear(year)[quarter];
+
+                    return (
+                      <div
+                        className="rounded-lg border shadow-sm sticky top-4"
+                        style={{
+                          borderColor: "#E0E0E0",
+                          backgroundColor: isCurrent
+                            ? "#FEF2F2"
+                            : isComplete
+                            ? "#F3F4F6"
+                            : "#EFF6FF",
+                        }}
+                      >
+                        <div className="p-4 space-y-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-2">
                               <div
-                                className="p-1 rounded-full"
+                                className="p-1.5 rounded-full"
                                 style={{ backgroundColor: "#67BACA" }}
                               >
-                                <MapPin className="w-3 h-3 text-white" />
+                                <MapPin className="w-4 h-4 text-white" />
                               </div>
                               <span
-                                className="text-sm font-semibold"
+                                className="text-base font-semibold"
                                 style={{ color: "#333333" }}
                               >
-                                {selectedYear}年 第{quarter}四半期
+                                {year}年 第{quarter}四半期
                               </span>
                             </div>
                             <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPinnedQuarter(null);
-                              }}
-                              className="text-xs px-2 py-1 rounded-full bg-white border hover:bg-gray-50 transition-all shadow-sm"
+                              onClick={() => setPinnedQuarter(null)}
+                              className="text-sm px-3 py-1 rounded-full bg-white border hover:bg-gray-50 transition-all shadow-sm"
                               style={{
                                 borderColor: "#E0E0E0",
                                 color: "#333333",
                               }}
                             >
-                              ✕
+                              ✕ 閉じる
                             </button>
                           </div>
 
                           <QuarterlyTaskDisplay
-                            year={selectedYear}
+                            year={year}
                             quarter={quarter}
                             advice={advice}
                             checkedItems={checkedItems}
@@ -932,89 +1044,24 @@ const Navigation = () => {
                           />
                         </div>
                       </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* 詳細情報パネル (PC用) */}
-          <div className="hidden lg:block lg:w-2/3">
-            {pinnedQuarter ? (
-              (() => {
-                const [yearStr, quarterStr] = pinnedQuarter.split("-");
-                const year = parseInt(yearStr);
-                const quarter = parseInt(quarterStr);
-                const isCurrent = isCurrentPosition(year, quarter);
-                const isComplete = isPassed(year, quarter);
-                const advice = getAdviceForYear(year)[quarter];
-
-                return (
-                  <div
-                    className="rounded-lg border shadow-sm sticky top-4"
-                    style={{
-                      borderColor: "#E0E0E0",
-                      backgroundColor: isCurrent
-                        ? "#FDF6F6"
-                        : isComplete
-                        ? "#F5F5F5"
-                        : "#FFFFFF",
-                    }}
-                  >
-                    <div className="p-4 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <div
-                            className="p-1.5 rounded-full"
-                            style={{ backgroundColor: "#67BACA" }}
-                          >
-                            <MapPin className="w-4 h-4 text-white" />
-                          </div>
-                          <span
-                            className="text-base font-semibold"
-                            style={{ color: "#333333" }}
-                          >
-                            {year}年 第{quarter}四半期
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => setPinnedQuarter(null)}
-                          className="text-sm px-3 py-1 rounded-full bg-white border hover:bg-gray-50 transition-all shadow-sm"
-                          style={{
-                            borderColor: "#E0E0E0",
-                            color: "#333333",
-                          }}
-                        >
-                          ✕ 閉じる
-                        </button>
-                      </div>
-
-                      <QuarterlyTaskDisplay
-                        year={year}
-                        quarter={quarter}
-                        advice={advice}
-                        checkedItems={checkedItems}
-                        onCheckboxChange={handleCheckboxChange}
-                      />
+                    );
+                  })()
+                ) : (
+                  <div className="hidden lg:flex items-center justify-center h-full bg-gray-50 rounded-lg border-2 border-dashed">
+                    <div className="text-center text-gray-500">
+                      <MapPin className="mx-auto h-12 w-12" />
+                      <p className="mt-2 text-lg font-medium">
+                        詳細を表示する四半期を選択してください
+                      </p>
+                      <p className="mt-1 text-sm">
+                        左のリストから項目をクリックすると、ここに詳細が表示されます。
+                      </p>
                     </div>
                   </div>
-                );
-              })()
-            ) : (
-              <div className="hidden lg:flex items-center justify-center h-full bg-gray-50 rounded-lg border-2 border-dashed">
-                <div className="text-center text-gray-500">
-                  <MapPin className="mx-auto h-12 w-12" />
-                  <p className="mt-2 text-lg font-medium">
-                    詳細を表示する四半期を選択してください
-                  </p>
-                  <p className="mt-1 text-sm">
-                    左のリストから項目をクリックすると、ここに詳細が表示されます。
-                  </p>
-                </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </div>
       </div>
 

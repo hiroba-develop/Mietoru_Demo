@@ -487,6 +487,33 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* 今月のワンポイントアドバイス */}
+      <div className="card bg-blue/5 border-blue/20">
+        <div className="flex items-start space-x-3">
+          <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+          <div>
+            <h3 className="text-base sm:text-lg font-semibold text-text">
+              今月のワンポイントアドバイス
+            </h3>
+            <p className="text-xs sm:text-sm text-text/70 mt-1">
+              {(() => {
+                const currentComment = taxAccountantComments.find(
+                  (comment) =>
+                    comment.year === currentYear &&
+                    comment.month === currentMonthNumber
+                );
+
+                if (currentComment?.comment) {
+                  return currentComment.comment;
+                } else {
+                  return "まだ今月のアドバイスコメントはありません";
+                }
+              })()}
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* KPIカード */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {kpiData.map((kpi, index) => (
@@ -507,7 +534,7 @@ const Dashboard: React.FC = () => {
       {/* 10年進捗可視化カード - カーナビ風 */}
       <Navigation />
       {/* アラート・通知エリアとタスクエリア */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* 今月のタスク */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
@@ -589,33 +616,6 @@ const Dashboard: React.FC = () => {
               </p>
             </div>
           )}
-        </div>
-
-        {/* 今月のワンポイントアドバイス */}
-        <div className="card bg-blue/5 border-blue/20">
-          <div className="flex items-start space-x-3">
-            <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-            <div>
-              <h3 className="text-base sm:text-lg font-semibold text-text">
-                今月のワンポイントアドバイス
-              </h3>
-              <p className="text-xs sm:text-sm text-text/70 mt-1">
-                {(() => {
-                  const currentComment = taxAccountantComments.find(
-                    (comment) =>
-                      comment.year === currentYear &&
-                      comment.month === currentMonthNumber
-                  );
-
-                  if (currentComment?.comment) {
-                    return currentComment.comment;
-                  } else {
-                    return "まだ今月のアドバイスコメントはありません";
-                  }
-                })()}
-              </p>
-            </div>
-          </div>
         </div>
       </div>
     </div>
