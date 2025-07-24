@@ -46,12 +46,12 @@ const QuarterlyTaskDisplay: React.FC<{
 
   return (
     <>
-      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mb-4 text-sm">
+      <div className="p-3 rounded-lg mb-4 text-sm">
         <div className="flex items-start space-x-3">
           <div className="flex-shrink-0 mt-0.5">
-            <Info className="w-5 h-5 text-blue-500" />
+            <Info className="w-5 h-5 text-text/70" />
           </div>
-          <p className="font-medium text-blue-800">{advice.advice}</p>
+          <p className="font-medium text-text">{advice.advice}</p>
         </div>
       </div>
 
