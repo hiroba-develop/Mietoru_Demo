@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { TrendingUp, CheckCircle, Star, AlertCircle } from "lucide-react";
+import {
+  TrendingUp,
+  CheckCircle,
+  Star,
+  AlertCircle,
+  Info,
+  XCircle,
+  BellOff,
+} from "lucide-react";
 import Navigation from "./Navigation";
 
 // デモデータ用の型定義
@@ -44,6 +52,13 @@ interface TaxAccountantComment {
   year?: number;
   month?: number;
   comment?: string;
+}
+
+interface AlertNotification {
+  id: string;
+  type: "info" | "warning" | "success" | "error";
+  title: string;
+  message: string;
 }
 
 // デモデータ
@@ -239,6 +254,54 @@ const DEMO_TAX_COMMENTS: TaxAccountantComment[] = [
       "前月の利益が若干下がりましたが、全体的には順調な成長を維持しています。夏に向けて売上増加を期待しつつ、無駄な経費の見直しを行いましょう。",
   },
 ];
+
+const getAlertIcon = (type: AlertNotification["type"]) => {
+  switch (type) {
+    case "success":
+      return <CheckCircle className="h-full w-full" />;
+    case "warning":
+      return <AlertCircle className="h-full w-full" />;
+    case "error":
+      return <XCircle className="h-full w-full" />;
+    case "info":
+    default:
+      return <Info className="h-full w-full" />;
+  }
+};
+
+const getAlertColors = (type: AlertNotification["type"]) => {
+  switch (type) {
+    case "success":
+      return {
+        bg: "bg-green-50",
+        border: "border-green-200",
+        textColor: "text-green-800",
+        iconColor: "text-green-500",
+      };
+    case "warning":
+      return {
+        bg: "bg-yellow-50",
+        border: "border-yellow-200",
+        textColor: "text-yellow-800",
+        iconColor: "text-yellow-500",
+      };
+    case "error":
+      return {
+        bg: "bg-red-50",
+        border: "border-red-200",
+        textColor: "text-red-800",
+        iconColor: "text-red-500",
+      };
+    case "info":
+    default:
+      return {
+        bg: "bg-blue-50",
+        border: "border-blue-200",
+        textColor: "text-blue-800",
+        iconColor: "text-blue-500",
+      };
+  }
+};
 
 const Dashboard: React.FC = () => {
   // 状態管理
@@ -448,6 +511,76 @@ const Dashboard: React.FC = () => {
     },
   ];
 
+  // 通知生成ロジック
+  const alerts: AlertNotification[] = [];
+
+  // 1. 利益達成率に関する通知
+  if (profitAchievementRate < 80) {
+    alerts.push({
+      id: "profit-warning",
+      type: "warning",
+      title: "利益目標未達",
+      message: `目標達成率が${profitAchievementRate.toFixed(
+        1
+      )}%です。原因を分析し対策を立てましょう。`,
+    });
+  } else if (profitAchievementRate >= 100) {
+    alerts.push({
+      id: "profit-success",
+      type: "success",
+      title: "利益目標達成",
+      message: "今月の利益目標を見事達成しました！素晴らしい成果です。",
+    });
+  }
+
+  // 2. タスク進捗に関する通知
+  if (!allTasksCompleted && completedTasks === 0 && totalEnabledTasks > 0) {
+    alerts.push({
+      id: "tasks-pending",
+      type: "info",
+      title: "タスク未着手",
+      message: "今月のタスクが開始されていません。計画的に進めましょう。",
+    });
+  }
+
+  // 3. 税理士コメントに関する通知
+  const hasComment = taxAccountantComments.some(
+    (c) => c.year === currentYear && c.month === currentMonthNumber && c.comment
+  );
+  if (hasComment) {
+    alerts.push({
+      id: "tax-comment",
+      type: "info",
+      title: "税理士からのアドバイス",
+      message:
+        "今月のアドバイスが届いています。ワンポイントアドバイス欄を確認しましょう。",
+    });
+  }
+
+  // 4. 前月比売上に関する通知
+  if (previousMonthData.saleResult > 0) {
+    const salesChange =
+      (currentMonthData.saleResult - previousMonthData.saleResult) /
+      previousMonthData.saleResult;
+    if (salesChange < -0.2) {
+      // 20%以上減少
+      alerts.push({
+        id: "sales-down",
+        type: "warning",
+        title: "売上減少アラート",
+        message: `売上が前月比で${Math.abs(salesChange * 100).toFixed(
+          0
+        )}%減少しています。要因を確認しましょう。`,
+      });
+    }
+  }
+
+  // 重要度順にソート (warning > success > info)
+  alerts.sort((a, b) => {
+    const order = { warning: 0, error: 0, success: 1, info: 2 };
+    return order[a.type] - order[b.type];
+  });
+
   // ローディング状態の表示
   if (loading) {
     return (
@@ -534,7 +667,7 @@ const Dashboard: React.FC = () => {
       {/* 10年進捗可視化カード - カーナビ風 */}
       <Navigation />
       {/* アラート・通知エリアとタスクエリア */}
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 今月のタスク */}
         <div className="card">
           <div className="flex items-center justify-between mb-4">
@@ -616,6 +749,47 @@ const Dashboard: React.FC = () => {
               </p>
             </div>
           )}
+        </div>
+        {/* 通知・アラート */}
+        <div className="card">
+          <h3 className="text-base sm:text-lg font-semibold text-text mb-4">
+            通知・アラート
+          </h3>
+          <div className="space-y-3">
+            {alerts.length > 0 ? (
+              alerts.map((alert) => (
+                <div
+                  key={alert.id}
+                  className={`flex items-start p-3 rounded-lg border ${
+                    getAlertColors(alert.type).bg
+                  } ${getAlertColors(alert.type).border}`}
+                >
+                  <div
+                    className={`flex-shrink-0 h-5 w-5 ${
+                      getAlertColors(alert.type).iconColor
+                    }`}
+                  >
+                    {getAlertIcon(alert.type)}
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <p
+                      className={`text-sm font-medium ${
+                        getAlertColors(alert.type).textColor
+                      }`}
+                    >
+                      {alert.title}
+                    </p>
+                    <p className="text-xs text-text/70 mt-1">{alert.message}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center text-sm text-text/70 py-4">
+                <BellOff className="h-6 w-6 mx-auto mb-2 text-text/50" />
+                現在、新しい通知はありません。
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

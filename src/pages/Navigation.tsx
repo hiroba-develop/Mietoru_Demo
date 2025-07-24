@@ -796,8 +796,6 @@ const Navigation = () => {
                           backgroundColor: isExpanded
                             ? isCurrent
                               ? "#FEF2F2"
-                              : isComplete
-                              ? "#F3F4F6"
                               : "#EFF6FF"
                             : hoveredQuarter === quarterKey
                             ? isCurrent
@@ -932,8 +930,6 @@ const Navigation = () => {
                               borderColor: "#E0E0E0",
                               backgroundColor: isCurrent
                                 ? "#FEF2F2"
-                                : isComplete
-                                ? "#F3F4F6"
                                 : "#EFF6FF",
                             }}
                           >
@@ -992,7 +988,6 @@ const Navigation = () => {
                     const year = parseInt(yearStr);
                     const quarter = parseInt(quarterStr);
                     const isCurrent = isCurrentPosition(year, quarter);
-                    const isComplete = isPassed(year, quarter);
                     const advice = getAdviceForYear(year)[quarter];
 
                     return (
@@ -1000,11 +995,7 @@ const Navigation = () => {
                         className="rounded-lg border shadow-sm sticky top-4"
                         style={{
                           borderColor: "#E0E0E0",
-                          backgroundColor: isCurrent
-                            ? "#FEF2F2"
-                            : isComplete
-                            ? "#F3F4F6"
-                            : "#EFF6FF",
+                          backgroundColor: isCurrent ? "#FEF2F2" : "#EFF6FF",
                         }}
                       >
                         <div className="p-4 space-y-4">
