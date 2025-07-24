@@ -1777,6 +1777,98 @@ const BudgetActual: React.FC = () => {
     alert("データを保存しました。（デモ版）");
   };
 
+  const detailedTableData = [
+    {
+      label: "売上",
+      targetField: "target",
+      actualField: "actual",
+    },
+    {
+      label: "粗利益",
+      targetField: "profitTarget",
+      actualField: "profit",
+    },
+    {
+      label: "営業利益",
+      targetField: "operatingProfitTarget",
+      actualField: "operatingProfit",
+    },
+  ];
+
+  const renderEditableCell = (data: MonthlyData, field: EditableField) => {
+    const key = `${tableYear}-${data.id}-${field}`;
+    const hasPendingEdit = key in pendingEdits;
+    const displayValue = hasPendingEdit
+      ? pendingEdits[key]
+      : (data[field as keyof MonthlyData] as number);
+
+    return (
+      <td
+        key={`${data.id}-${field}`}
+        className={`py-2 sm:py-3 px-1 sm:px-2 text-right cursor-pointer hover:bg-blue-50 transition-colors ${
+          hasPendingEdit ? "bg-yellow-100" : ""
+        }`}
+        onDoubleClick={() => handleCellDoubleClick(data.id, field)}
+        title="ダブルクリックで編集"
+      >
+        {editingCell === key ? (
+          <input
+            type="number"
+            defaultValue={displayValue}
+            onBlur={(e) =>
+              handleCellUpdate(data.id, field, Number(e.target.value))
+            }
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleCellUpdate(data.id, field, Number(e.currentTarget.value));
+              } else if (e.key === "Escape") {
+                setEditingCell(null);
+              }
+            }}
+            className="w-full text-right border border-primary rounded px-1 focus:outline-none focus:ring-1 focus:ring-primary"
+            autoFocus
+          />
+        ) : (
+          displayValue.toLocaleString()
+        )}
+      </td>
+    );
+  };
+
+  const renderRateCellForTable = (
+    data: MonthlyData,
+    targetField: EditableField,
+    actualField: EditableField
+  ) => {
+    const targetKey = `${tableYear}-${data.id}-${targetField}`;
+    const actualKey = `${tableYear}-${data.id}-${actualField}`;
+
+    const target =
+      targetKey in pendingEdits
+        ? pendingEdits[targetKey]
+        : (data[targetField as keyof MonthlyData] as number);
+    const actual =
+      actualKey in pendingEdits
+        ? pendingEdits[actualKey]
+        : (data[actualField as keyof MonthlyData] as number);
+
+    const rate = target > 0 ? (actual / target) * 100 : 0;
+    return (
+      <td
+        key={`${data.id}-rate`}
+        className={`py-2 sm:py-3 px-1 sm:px-2 text-right font-medium ${
+          rate >= 100
+            ? "text-success"
+            : rate >= 90
+            ? "text-warning"
+            : "text-error"
+        }`}
+      >
+        {actual > 0 ? `${rate.toFixed(1)}%` : "-"}
+      </td>
+    );
+  };
+
   // CSV出力機能
   const handleDataExport = () => {
     try {
@@ -2130,7 +2222,8 @@ const BudgetActual: React.FC = () => {
           <table className="w-full text-xs sm:text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-center py-2 sm:py-3 px-1 sm:px-2 font-medium">
+                <th className="text-left py-2 sm:py-3 px-1 sm:px-2 font-medium w-24"></th>
+                <th className="text-left py-2 sm:py-3 px-1 sm:px-2 font-medium">
                   項目
                 </th>
                 {getTableDisplayData().map((data) => (
@@ -2144,407 +2237,50 @@ const BudgetActual: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {/* 売上目標 */}
-              <tr className="border-b border-border/50">
-                <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-center">
-                  売上目標
-                </td>
-                {getTableDisplayData().map((data) => {
-                  const key = `${tableYear}-${data.id}-target`;
-                  const hasPendingEdit = key in pendingEdits;
-                  const displayValue = hasPendingEdit
-                    ? pendingEdits[key]
-                    : data.target;
-                  return (
+              {detailedTableData.map((item) => (
+                <React.Fragment key={item.label}>
+                  <tr className="border-b border-border/50">
                     <td
-                      key={data.id}
-                      className={`py-2 sm:py-3 px-1 sm:px-2 text-right cursor-pointer hover:bg-blue-50 transition-colors ${
-                        hasPendingEdit ? "bg-yellow-100" : ""
-                      }`}
-                      onDoubleClick={() =>
-                        handleCellDoubleClick(data.id, "target")
-                      }
-                      title="ダブルクリックで編集"
+                      rowSpan={3}
+                      className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-left align-middle border-r"
                     >
-                      {editingCell === key ? (
-                        <input
-                          type="number"
-                          defaultValue={displayValue}
-                          onBlur={(e) =>
-                            handleCellUpdate(
-                              data.id,
-                              "target",
-                              Number(e.target.value)
-                            )
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              handleCellUpdate(
-                                data.id,
-                                "target",
-                                Number(e.currentTarget.value)
-                              );
-                            } else if (e.key === "Escape") {
-                              setEditingCell(null);
-                            }
-                          }}
-                          className="w-full text-right border border-primary rounded px-1 focus:outline-none focus:ring-1 focus:ring-primary"
-                          autoFocus
-                        />
-                      ) : (
-                        displayValue.toLocaleString()
-                      )}
+                      {item.label}
                     </td>
-                  );
-                })}
-              </tr>
-              {/* 売上実績 */}
-              <tr className="border-b border-border/50">
-                <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-center">
-                  売上実績
-                </td>
-                {getTableDisplayData().map((data) => {
-                  const key = `${tableYear}-${data.id}-actual`;
-                  const hasPendingEdit = key in pendingEdits;
-                  const displayValue = hasPendingEdit
-                    ? pendingEdits[key]
-                    : data.actual;
-                  return (
-                    <td
-                      key={data.id}
-                      className={`py-2 sm:py-3 px-1 sm:px-2 text-right cursor-pointer hover:bg-blue-50 transition-colors ${
-                        hasPendingEdit ? "bg-yellow-100" : ""
-                      }`}
-                      onDoubleClick={() =>
-                        handleCellDoubleClick(data.id, "actual")
-                      }
-                      title="ダブルクリックで編集"
-                    >
-                      {editingCell === key ? (
-                        <input
-                          type="number"
-                          defaultValue={displayValue}
-                          onBlur={(e) =>
-                            handleCellUpdate(
-                              data.id,
-                              "actual",
-                              Number(e.target.value)
-                            )
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              handleCellUpdate(
-                                data.id,
-                                "actual",
-                                Number(e.currentTarget.value)
-                              );
-                            } else if (e.key === "Escape") {
-                              setEditingCell(null);
-                            }
-                          }}
-                          className="w-full text-right border border-primary rounded px-1 focus:outline-none focus:ring-1 focus:ring-primary"
-                          autoFocus
-                        />
-                      ) : (
-                        displayValue.toLocaleString()
-                      )}
+                    <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-left">
+                      目標
                     </td>
-                  );
-                })}
-              </tr>
-              {/* 売上達成率 */}
-              <tr className="border-b border-border/50">
-                <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-center">
-                  売上達成率
-                </td>
-                {getTableDisplayData().map((data) => {
-                  const rate =
-                    data.target > 0 ? (data.actual / data.target) * 100 : 0;
-                  return (
-                    <td
-                      key={data.id}
-                      className={`py-2 sm:py-3 px-1 sm:px-2 text-right font-medium ${
-                        rate >= 100
-                          ? "text-success"
-                          : rate >= 90
-                          ? "text-warning"
-                          : "text-error"
-                      }`}
-                    >
-                      {rate.toFixed(1)}%
+                    {getTableDisplayData().map((data) =>
+                      renderEditableCell(
+                        data,
+                        item.targetField as EditableField
+                      )
+                    )}
+                  </tr>
+                  <tr className="border-b border-border/50">
+                    <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-left">
+                      実績
                     </td>
-                  );
-                })}
-              </tr>
-              {/* 利益目標 */}
-              <tr className="border-b border-border/50">
-                <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-center">
-                  利益目標
-                </td>
-                {getTableDisplayData().map((data) => {
-                  const key = `${tableYear}-${data.id}-profitTarget`;
-                  const hasPendingEdit = key in pendingEdits;
-                  const displayValue = hasPendingEdit
-                    ? pendingEdits[key]
-                    : data.profitTarget;
-                  return (
-                    <td
-                      key={data.id}
-                      className={`py-2 sm:py-3 px-1 sm:px-2 text-right cursor-pointer hover:bg-blue-50 transition-colors ${
-                        hasPendingEdit ? "bg-yellow-100" : ""
-                      }`}
-                      onDoubleClick={() =>
-                        handleCellDoubleClick(data.id, "profitTarget")
-                      }
-                      title="ダブルクリックで編集"
-                    >
-                      {editingCell === key ? (
-                        <input
-                          type="number"
-                          defaultValue={displayValue}
-                          onBlur={(e) =>
-                            handleCellUpdate(
-                              data.id,
-                              "profitTarget",
-                              Number(e.target.value)
-                            )
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              handleCellUpdate(
-                                data.id,
-                                "profitTarget",
-                                Number(e.currentTarget.value)
-                              );
-                            } else if (e.key === "Escape") {
-                              setEditingCell(null);
-                            }
-                          }}
-                          className="w-full text-right border border-primary rounded px-1 focus:outline-none focus:ring-1 focus:ring-primary"
-                          autoFocus
-                        />
-                      ) : (
-                        displayValue.toLocaleString()
-                      )}
+                    {getTableDisplayData().map((data) =>
+                      renderEditableCell(
+                        data,
+                        item.actualField as EditableField
+                      )
+                    )}
+                  </tr>
+                  <tr className="border-b-2 border-border/80">
+                    <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-left">
+                      達成率
                     </td>
-                  );
-                })}
-              </tr>
-              {/* 利益実績 */}
-              <tr className="border-b border-border/50">
-                <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-center">
-                  利益実績
-                </td>
-                {getTableDisplayData().map((data) => {
-                  const key = `${tableYear}-${data.id}-profit`;
-                  const hasPendingEdit = key in pendingEdits;
-                  const displayValue = hasPendingEdit
-                    ? pendingEdits[key]
-                    : data.profit;
-                  return (
-                    <td
-                      key={data.id}
-                      className={`py-2 sm:py-3 px-1 sm:px-2 text-right cursor-pointer hover:bg-blue-50 transition-colors ${
-                        hasPendingEdit ? "bg-yellow-100" : ""
-                      }`}
-                      onDoubleClick={() =>
-                        handleCellDoubleClick(data.id, "profit")
-                      }
-                      title="ダブルクリックで編集"
-                    >
-                      {editingCell === key ? (
-                        <input
-                          type="number"
-                          defaultValue={displayValue}
-                          onBlur={(e) =>
-                            handleCellUpdate(
-                              data.id,
-                              "profit",
-                              Number(e.target.value)
-                            )
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              handleCellUpdate(
-                                data.id,
-                                "profit",
-                                Number(e.currentTarget.value)
-                              );
-                            } else if (e.key === "Escape") {
-                              setEditingCell(null);
-                            }
-                          }}
-                          className="w-full text-right border border-primary rounded px-1 focus:outline-none focus:ring-1 focus:ring-primary"
-                          autoFocus
-                        />
-                      ) : (
-                        displayValue.toLocaleString()
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-              {/* 利益達成率 */}
-              <tr className="border-b border-border/50">
-                <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-center">
-                  利益達成率
-                </td>
-                {getTableDisplayData().map((data) => {
-                  const rate =
-                    data.profitTarget > 0
-                      ? (data.profit / data.profitTarget) * 100
-                      : 0;
-                  return (
-                    <td
-                      key={data.id}
-                      className={`py-2 sm:py-3 px-1 sm:px-2 text-right font-medium ${
-                        rate >= 100
-                          ? "text-success"
-                          : rate >= 90
-                          ? "text-warning"
-                          : "text-error"
-                      }`}
-                    >
-                      {rate.toFixed(1)}%
-                    </td>
-                  );
-                })}
-              </tr>
-              {/* 営業利益目標 */}
-              <tr className="border-b border-border/50">
-                <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-center">
-                  営業利益目標
-                </td>
-                {getTableDisplayData().map((data) => {
-                  const key = `${tableYear}-${data.id}-operatingProfitTarget`;
-                  const hasPendingEdit = key in pendingEdits;
-                  const displayValue = hasPendingEdit
-                    ? pendingEdits[key]
-                    : data.operatingProfitTarget;
-                  return (
-                    <td
-                      key={data.id}
-                      className={`py-2 sm:py-3 px-1 sm:px-2 text-right cursor-pointer hover:bg-blue-50 transition-colors ${
-                        hasPendingEdit ? "bg-yellow-100" : ""
-                      }`}
-                      onDoubleClick={() =>
-                        handleCellDoubleClick(data.id, "operatingProfitTarget")
-                      }
-                      title="ダブルクリックで編集"
-                    >
-                      {editingCell === key ? (
-                        <input
-                          type="number"
-                          defaultValue={displayValue}
-                          onBlur={(e) =>
-                            handleCellUpdate(
-                              data.id,
-                              "operatingProfitTarget",
-                              Number(e.target.value)
-                            )
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              handleCellUpdate(
-                                data.id,
-                                "operatingProfitTarget",
-                                Number(e.currentTarget.value)
-                              );
-                            } else if (e.key === "Escape") {
-                              setEditingCell(null);
-                            }
-                          }}
-                          className="w-full text-right border border-primary rounded px-1 focus:outline-none focus:ring-1 focus:ring-primary"
-                          autoFocus
-                        />
-                      ) : (
-                        displayValue.toLocaleString()
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-              {/* 営業利益実績 */}
-              <tr className="border-b border-border/50">
-                <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-center">
-                  営業利益実績
-                </td>
-                {getTableDisplayData().map((data) => {
-                  const key = `${tableYear}-${data.id}-operatingProfit`;
-                  const hasPendingEdit = key in pendingEdits;
-                  const displayValue = hasPendingEdit
-                    ? pendingEdits[key]
-                    : data.operatingProfit;
-                  return (
-                    <td
-                      key={data.id}
-                      className={`py-2 sm:py-3 px-1 sm:px-2 text-right cursor-pointer hover:bg-blue-50 transition-colors ${
-                        hasPendingEdit ? "bg-yellow-100" : ""
-                      }`}
-                      onDoubleClick={() =>
-                        handleCellDoubleClick(data.id, "operatingProfit")
-                      }
-                      title="ダブルクリックで編集"
-                    >
-                      {editingCell === key ? (
-                        <input
-                          type="number"
-                          defaultValue={displayValue}
-                          onBlur={(e) =>
-                            handleCellUpdate(
-                              data.id,
-                              "operatingProfit",
-                              Number(e.target.value)
-                            )
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              handleCellUpdate(
-                                data.id,
-                                "operatingProfit",
-                                Number(e.currentTarget.value)
-                              );
-                            } else if (e.key === "Escape") {
-                              setEditingCell(null);
-                            }
-                          }}
-                          className="w-full text-right border border-primary rounded px-1 focus:outline-none focus:ring-1 focus:ring-primary"
-                          autoFocus
-                        />
-                      ) : (
-                        displayValue.toLocaleString()
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-              {/* 営業利益達成率 */}
-              <tr className="border-b border-border/50">
-                <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-center">
-                  営業利益達成率
-                </td>
-                {getTableDisplayData().map((data) => {
-                  const rate =
-                    data.operatingProfitTarget > 0
-                      ? (data.operatingProfit / data.operatingProfitTarget) *
-                        100
-                      : 0;
-                  return (
-                    <td
-                      key={data.id}
-                      className={`py-2 sm:py-3 px-1 sm:px-2 text-right font-medium ${
-                        rate >= 100
-                          ? "text-success"
-                          : rate >= 90
-                          ? "text-warning"
-                          : "text-error"
-                      }`}
-                    >
-                      {rate.toFixed(1)}%
-                    </td>
-                  );
-                })}
-              </tr>
+                    {getTableDisplayData().map((data) =>
+                      renderRateCellForTable(
+                        data,
+                        item.targetField as EditableField,
+                        item.actualField as EditableField
+                      )
+                    )}
+                  </tr>
+                </React.Fragment>
+              ))}
             </tbody>
           </table>
         </div>

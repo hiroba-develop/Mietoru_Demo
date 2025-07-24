@@ -326,94 +326,105 @@ const Roadmap: React.FC = () => {
     );
   }
 
-  const renderTableRow = (
-    label: string,
+  const renderDataCell = (
+    data: YearlyData,
     field: keyof YearlyData,
-    isEditable: boolean = false,
-    isRate: boolean = false,
-    targetField?: keyof YearlyData,
-    actualField?: keyof YearlyData
+    isEditable: boolean
   ) => {
+    const key = `${data.year}-${field}`;
+    const displayValue = data[field as EditableField] as number;
+
     return (
-      <tr className="border-b border-border/50">
-        <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-center">
-          {label}
-        </td>
-        {getTableDisplayData().map((data) => {
-          if (isRate && targetField && actualField) {
-            const targetValue = data[targetField] as number;
-            const actualValue = data[actualField] as number;
-            const rate =
-              targetValue > 0 ? (actualValue / targetValue) * 100 : 0;
-            return (
-              <td
-                key={data.year}
-                className={`py-2 sm:py-3 px-1 sm:px-2 text-right font-medium ${
-                  rate >= 100
-                    ? "text-success"
-                    : rate >= 90
-                    ? "text-warning"
-                    : "text-error"
-                }`}
-              >
-                {actualValue > 0 ? `${rate.toFixed(1)}%` : "-"}
-              </td>
-            );
-          }
-
-          const key = `${data.year}-${field}`;
-          const displayValue = data[field as EditableField] as number;
-
-          return (
-            <td
-              key={data.year}
-              className={`py-2 sm:py-3 px-1 sm:px-2 text-right ${
-                isEditable
-                  ? "cursor-pointer hover:bg-blue-50 transition-colors"
-                  : ""
-              } ${isEditable && key in pendingEdits ? "bg-yellow-100" : ""}`}
-              onDoubleClick={() =>
-                isEditable &&
-                handleCellDoubleClick(data.year, field as EditableField)
+      <td
+        key={data.year}
+        className={`py-2 sm:py-3 px-1 sm:px-2 text-right ${
+          isEditable ? "cursor-pointer hover:bg-blue-50 transition-colors" : ""
+        } ${isEditable && key in pendingEdits ? "bg-yellow-100" : ""}`}
+        onDoubleClick={() =>
+          isEditable && handleCellDoubleClick(data.year, field as EditableField)
+        }
+        title={isEditable ? "ダブルクリックで編集" : ""}
+      >
+        {isEditable && editingCell === key ? (
+          <input
+            type="number"
+            defaultValue={displayValue}
+            onBlur={(e) =>
+              handleCellUpdate(
+                data.year,
+                field as EditableField,
+                Number(e.target.value)
+              )
+            }
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleCellUpdate(
+                  data.year,
+                  field as EditableField,
+                  Number(e.currentTarget.value)
+                );
+              } else if (e.key === "Escape") {
+                setEditingCell(null);
               }
-              title={isEditable ? "ダブルクリックで編集" : ""}
-            >
-              {isEditable && editingCell === key ? (
-                <input
-                  type="number"
-                  defaultValue={displayValue / 10000}
-                  onBlur={(e) =>
-                    handleCellUpdate(
-                      data.year,
-                      field as EditableField,
-                      Number(e.target.value) * 10000
-                    )
-                  }
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      handleCellUpdate(
-                        data.year,
-                        field as EditableField,
-                        Number(e.currentTarget.value) * 10000
-                      );
-                    } else if (e.key === "Escape") {
-                      setEditingCell(null);
-                    }
-                  }}
-                  className="w-full text-right border border-primary rounded px-1 focus:outline-none focus:ring-1 focus:ring-primary"
-                  autoFocus
-                />
-              ) : displayValue > 0 || !isRate ? (
-                `${(displayValue / 10000).toLocaleString()}万`
-              ) : (
-                "-"
-              )}
-            </td>
-          );
-        })}
-      </tr>
+            }}
+            className="w-full text-right border border-primary rounded px-1 focus:outline-none focus:ring-1 focus:ring-primary"
+            autoFocus
+          />
+        ) : displayValue > 0 ? (
+          displayValue.toLocaleString()
+        ) : (
+          "-"
+        )}
+      </td>
     );
   };
+
+  const renderRateCell = (
+    data: YearlyData,
+    targetField: keyof YearlyData,
+    actualField: keyof YearlyData
+  ) => {
+    const targetValue = data[targetField] as number;
+    const actualValue = data[actualField] as number;
+    const rate = targetValue > 0 ? (actualValue / targetValue) * 100 : 0;
+    return (
+      <td
+        key={data.year}
+        className={`py-2 sm:py-3 px-1 sm:px-2 text-right font-medium ${
+          rate >= 100
+            ? "text-success"
+            : rate >= 90
+            ? "text-warning"
+            : "text-error"
+        }`}
+      >
+        {actualValue > 0 ? `${rate.toFixed(1)}%` : "-"}
+      </td>
+    );
+  };
+
+  const tableData = [
+    {
+      label: "売上",
+      targetField: "revenueTarget",
+      actualField: "revenueActual",
+    },
+    {
+      label: "粗利益",
+      targetField: "grossProfitTarget",
+      actualField: "grossProfitActual",
+    },
+    {
+      label: "営業利益",
+      targetField: "operatingProfitTarget",
+      actualField: "operatingProfitActual",
+    },
+    {
+      label: "純資産",
+      targetField: "netWorthTarget",
+      actualField: "netWorthActual",
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -582,7 +593,8 @@ const Roadmap: React.FC = () => {
           <table className="w-full text-xs sm:text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-center py-2 sm:py-3 px-1 sm:px-2 font-medium">
+                <th className="text-left py-2 sm:py-3 px-1 sm:px-2 font-medium w-24"></th>
+                <th className="text-left py-2 sm:py-3 px-1 sm:px-2 font-medium">
                   項目
                 </th>
                 {getTableDisplayData().map((data) => (
@@ -596,46 +608,52 @@ const Roadmap: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {renderTableRow("売上目標", "revenueTarget", true)}
-              {renderTableRow("売上実績", "revenueActual")}
-              {renderTableRow(
-                "売上達成率",
-                "revenueActual",
-                false,
-                true,
-                "revenueTarget",
-                "revenueActual"
-              )}
-              {renderTableRow("粗利益目標", "grossProfitTarget", true)}
-              {renderTableRow("粗利益実績", "grossProfitActual")}
-              {renderTableRow(
-                "粗利益達成率",
-                "grossProfitActual",
-                false,
-                true,
-                "grossProfitTarget",
-                "grossProfitActual"
-              )}
-              {renderTableRow("営業利益目標", "operatingProfitTarget", true)}
-              {renderTableRow("営業利益実績", "operatingProfitActual")}
-              {renderTableRow(
-                "営業利益達成率",
-                "operatingProfitActual",
-                false,
-                true,
-                "operatingProfitTarget",
-                "operatingProfitActual"
-              )}
-              {renderTableRow("純資産目標", "netWorthTarget", true)}
-              {renderTableRow("純資産実績", "netWorthActual")}
-              {renderTableRow(
-                "純資産達成率",
-                "netWorthActual",
-                false,
-                true,
-                "netWorthTarget",
-                "netWorthActual"
-              )}
+              {tableData.map((item) => (
+                <React.Fragment key={item.label}>
+                  <tr className="border-b border-border/50">
+                    <td
+                      rowSpan={3}
+                      className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-left align-middle border-r"
+                    >
+                      {item.label}
+                    </td>
+                    <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-left">
+                      目標
+                    </td>
+                    {getTableDisplayData().map((data) =>
+                      renderDataCell(
+                        data,
+                        item.targetField as EditableField,
+                        true
+                      )
+                    )}
+                  </tr>
+                  <tr className="border-b border-border/50">
+                    <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-left">
+                      実績
+                    </td>
+                    {getTableDisplayData().map((data) =>
+                      renderDataCell(
+                        data,
+                        item.actualField as keyof YearlyData,
+                        false
+                      )
+                    )}
+                  </tr>
+                  <tr className="border-b-2 border-border/80">
+                    <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-left">
+                      達成率
+                    </td>
+                    {getTableDisplayData().map((data) =>
+                      renderRateCell(
+                        data,
+                        item.targetField as keyof YearlyData,
+                        item.actualField as keyof YearlyData
+                      )
+                    )}
+                  </tr>
+                </React.Fragment>
+              ))}
             </tbody>
           </table>
         </div>
