@@ -421,7 +421,7 @@ const Roadmap: React.FC = () => {
         <div className="flex items-center space-x-3">
           <Navigation className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-text">
-            ロードマップ設定 (デモモード)
+            10年目標設定 (デモモード)
           </h1>
         </div>
       </div>
@@ -430,23 +430,13 @@ const Roadmap: React.FC = () => {
         {/* 10年ロードマップ進捗 */}
         <div className="card">
           <h3 className="text-base sm:text-lg font-semibold text-text mb-4">
-            10年ロードマップ進捗
+            10年目標進捗
           </h3>
-          <div className="mb-6 text-center">
-            <p className="text-sm sm:text-base text-text/80 leading-relaxed">
-              10年間で純資産5000万円を目指すロードマップを作成します。
-              <br />
-              １年ごとの目標をご提案します。
-            </p>
-          </div>
           <div className="flex justify-center">
             {/* 10年進捗 */}
             <div>
-              <h4 className="text-md font-medium text-text mb-3 text-center">
-                10年目標
-              </h4>
-              <div className="w-full h-48 flex items-center justify-center">
-                <div className="relative w-32 h-32">
+              <div className="w-full h-64 flex items-center justify-center">
+                <div className="relative w-56 h-56">
                   <svg
                     className="w-full h-full transform -rotate-90"
                     viewBox="0 0 100 100"
@@ -475,12 +465,12 @@ const Roadmap: React.FC = () => {
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-center">
-                      <div className="text-lg font-bold text-primary">
+                      <div className="text-3xl font-bold text-primary">
                         {tenYearProgress === 0
                           ? "0.0%"
                           : `${tenYearProgress.toFixed(1)}%`}
                       </div>
-                      <div className="text-xs text-gray-600">10年進捗</div>
+                      <div className="text-base text-gray-600">10年進捗</div>
                     </div>
                   </div>
                 </div>

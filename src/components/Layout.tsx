@@ -55,7 +55,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       disabled: false,
     },
     {
-      name: "ロードマップ設定",
+      name: "10年目標設定",
       href: "/roadmap",
       icon: Map,
       disabled: false,
