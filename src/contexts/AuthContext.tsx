@@ -89,6 +89,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // 保存された認証状態を復元
     const userId = getCookie("userId");
     const settingFlg = getCookie("settingFlg");
+    const role = getCookie("role");
 
     // cookieに必要な情報がない場合は、必ずlogin画面に遷移
     if (!userId || !settingFlg) {
@@ -107,6 +108,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isSetupComplete: isSetupComplete,
         createdAt: new Date(),
         lastLogin: new Date(),
+        role: role || undefined,
       };
 
       setUser(userToSet);
@@ -151,6 +153,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isSetupComplete: isSetupComplete,
         createdAt: new Date(),
         lastLogin: new Date(),
+        role: role || undefined,
       };
 
       setUser(demoUser);
@@ -202,6 +205,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isSetupComplete: isSetupComplete,
         createdAt: new Date(),
         lastLogin: new Date(),
+        role: role || undefined,
       };
 
       setUser(googleUser);

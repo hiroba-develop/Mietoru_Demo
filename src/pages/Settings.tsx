@@ -63,6 +63,7 @@ const DEMO_TASKS: Task[] = [
 
 const Settings: React.FC = () => {
   const { user, updateUserSetup } = useAuth();
+  const isTaxAccountant = user?.role === "1";
 
   const [tasks, setTasks] = useState<Task[]>(DEMO_TASKS);
   const [newTaskName, setNewTaskName] = useState("");
@@ -404,301 +405,52 @@ const Settings: React.FC = () => {
         </button>
       </div>
 
-      {/* 事業基本情報設定 */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-        {/* 基本情報 */}
-        <div className="card">
-          <div className="flex items-center space-x-2 mb-4">
-            <Building className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-            <h3 className="text-base sm:text-lg font-semibold text-text">
-              事業基本情報
-            </h3>
-          </div>
+      {!isTaxAccountant && (
+        <>
+          {/* 事業基本情報設定 */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+            {/* 基本情報 */}
+            <div className="card">
+              <div className="flex items-center space-x-2 mb-4">
+                <Building className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                <h3 className="text-base sm:text-lg font-semibold text-text">
+                  事業基本情報
+                </h3>
+              </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-text/70 mb-2">
-                会社名（任意）
-              </label>
-              <input
-                type="text"
-                value={setupData.companyName || ""}
-                onChange={(e) =>
-                  setSetupData({ ...setupData, companyName: e.target.value })
-                }
-                className="input-field w-full"
-                placeholder="会社名を入力してください（任意）"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-text/70 mb-2">
-                企業規模
-              </label>
-              <select
-                value={setupData.companySize}
-                onChange={(e) =>
-                  setSetupData({
-                    ...setupData,
-                    companySize: e.target.value as CompanySize,
-                  })
-                }
-                className="input-field w-full pr-8 appearance-none bg-white"
-                style={{
-                  backgroundImage:
-                    'url(\'data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>\')',
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "calc(100% - 4px) center",
-                  backgroundSize: "16px",
-                }}
-              >
-                {companyTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm text-text/70 mb-2">業界</label>
-              <select
-                value={setupData.industry}
-                onChange={(e) =>
-                  setSetupData({
-                    ...setupData,
-                    industry: e.target.value as Industry,
-                  })
-                }
-                className="input-field w-full pr-8 appearance-none bg-white"
-                style={{
-                  backgroundImage:
-                    'url(\'data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>\')',
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "calc(100% - 4px) center",
-                  backgroundSize: "16px",
-                }}
-              >
-                {industries.map((industry) => (
-                  <option key={industry} value={industry}>
-                    {industry}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm text-text/70 mb-2">
-                事業年度開始年月
-              </label>
-              <p className="text-text font-medium">
-                {setupData.fiscalYearStartYear || new Date().getFullYear()}年
-                {setupData.fiscalYearStartMonth}月
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* 財務・目標設定 */}
-        <div className="card">
-          <div className="flex items-center space-x-2 mb-4">
-            <Target className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-            <h3 className="text-base sm:text-lg font-semibold text-text">
-              財務・目標設定
-            </h3>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-text/70 mb-2">
-                事業経験
-              </label>
-              <select
-                value={setupData.businessExperience}
-                onChange={(e) =>
-                  setSetupData({
-                    ...setupData,
-                    businessExperience: e.target.value as BusinessExperience,
-                  })
-                }
-                className="input-field w-full pr-8 appearance-none bg-white"
-                style={{
-                  backgroundImage:
-                    'url(\'data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>\')',
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "calc(100% - 4px) center",
-                  backgroundSize: "16px",
-                }}
-              >
-                {experienceOptions.map((exp) => (
-                  <option key={exp} value={exp}>
-                    {exp}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm text-text/70 mb-2">
-                財務知識レベル
-              </label>
-              <select
-                value={setupData.financialKnowledge}
-                onChange={(e) =>
-                  setSetupData({
-                    ...setupData,
-                    financialKnowledge: e.target.value as FinancialKnowledge,
-                  })
-                }
-                className="input-field w-full pr-8 appearance-none bg-white"
-                style={{
-                  backgroundImage:
-                    'url(\'data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>\')',
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "calc(100% - 4px) center",
-                  backgroundSize: "16px",
-                }}
-              >
-                {knowledgeOptions.map((knowledge) => (
-                  <option key={knowledge} value={knowledge}>
-                    {knowledge}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* 月次タスク通知設定 */}
-        <div className="card">
-          <div className="flex items-center space-x-2">
-            <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-            <h3 className="text-base sm:text-lg font-semibold text-text">
-              月次タスク通知設定
-            </h3>
-          </div>
-          <div className="text-base sm:text-lg mb-4 ml-4">
-            <p className="text-sm text-text/70">
-              登録メールアドレスに通知を送信
-              (デモ版では実際の通知は送信されません)
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            {/* 既存タスク一覧 */}
-            <div className="space-y-2">
-              {tasks.map((task) => (
-                <div
-                  key={task.id}
-                  className="p-3 border border-border rounded-lg"
-                >
-                  {editingTaskId === task.id ? (
-                    // 編集モード
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm text-text/70 mb-1">
-                          タスク名
-                        </label>
-                        <input
-                          type="text"
-                          value={editingTaskName}
-                          onChange={(e) => setEditingTaskName(e.target.value)}
-                          className="input-field w-full"
-                          placeholder="タスク名を入力"
-                        />
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <label className="text-sm text-text/70">毎月</label>
-                        <select
-                          value={editingTaskDay}
-                          onChange={(e) =>
-                            setEditingTaskDay(Number(e.target.value))
-                          }
-                          className="input-field pr-8 appearance-none bg-white"
-                          style={{
-                            backgroundImage:
-                              'url(\'data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>\')',
-                            backgroundRepeat: "no-repeat",
-                            backgroundPosition: "calc(100% - 4px) center",
-                            backgroundSize: "16px",
-                          }}
-                        >
-                          {Array.from({ length: 28 }, (_, i) => (
-                            <option key={i + 1} value={i + 1}>
-                              {i + 1}日
-                            </option>
-                          ))}
-                        </select>
-                        <label className="text-sm text-text/70">に通知</label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={saveEditingTask}
-                          className="btn-primary text-sm px-3 py-1 flex items-center"
-                        >
-                          <Save className="h-3 w-3 mr-1" />
-                          保存
-                        </button>
-                        <button
-                          onClick={cancelEditingTask}
-                          className="btn-secondary text-sm px-3 py-1"
-                        >
-                          キャンセル
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    // 通常表示
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <input
-                          type="checkbox"
-                          checked={task.enabled}
-                          onChange={() => handleTaskToggle(task.id)}
-                          className="rounded border-border text-primary focus:ring-primary"
-                        />
-                        <div
-                          onDoubleClick={() => startEditingTask(task)}
-                          className="cursor-pointer hover:bg-gray-50 p-1 rounded"
-                          title="ダブルクリックで編集"
-                        >
-                          <p className="font-medium text-text">{task.name}</p>
-                          <p className="text-sm text-text/70">
-                            毎月{task.day}日に通知
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteTask(task.id)}
-                        className="text-error hover:bg-error/10 p-1 rounded"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-text/70 mb-2">
+                    会社名（任意）
+                  </label>
+                  <input
+                    type="text"
+                    value={setupData.companyName || ""}
+                    onChange={(e) =>
+                      setSetupData({
+                        ...setupData,
+                        companyName: e.target.value,
+                      })
+                    }
+                    className="input-field w-full"
+                    placeholder="会社名を入力してください（任意）"
+                    disabled={isTaxAccountant}
+                  />
                 </div>
-              ))}
-            </div>
 
-            {/* 新しいタスクの追加 */}
-            <div className="border-t border-border pt-4">
-              <h4 className="font-medium text-text mb-3">新しいタスクを追加</h4>
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  value={newTaskName}
-                  onChange={(e) => setNewTaskName(e.target.value)}
-                  className="input-field w-full"
-                  placeholder="タスク名を入力"
-                />
-                <div className="flex items-center space-x-2">
-                  <label className="text-sm text-text/70">毎月</label>
+                <div>
+                  <label className="block text-sm text-text/70 mb-2">
+                    企業規模
+                  </label>
                   <select
-                    value={newTaskDay}
-                    onChange={(e) => setNewTaskDay(Number(e.target.value))}
-                    className="input-field pr-8 appearance-none bg-white"
+                    value={setupData.companySize}
+                    onChange={(e) =>
+                      setSetupData({
+                        ...setupData,
+                        companySize: e.target.value as CompanySize,
+                      })
+                    }
+                    className="input-field w-full pr-8 appearance-none bg-white"
                     style={{
                       backgroundImage:
                         'url(\'data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>\')',
@@ -706,27 +458,309 @@ const Settings: React.FC = () => {
                       backgroundPosition: "calc(100% - 4px) center",
                       backgroundSize: "16px",
                     }}
+                    disabled={isTaxAccountant}
                   >
-                    {Array.from({ length: 28 }, (_, i) => (
-                      <option key={i + 1} value={i + 1}>
-                        {i + 1}日
+                    {companyTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
                       </option>
                     ))}
                   </select>
-                  <label className="text-sm text-text/70">に通知</label>
                 </div>
-                <button
-                  onClick={handleAddTask}
-                  className="btn-secondary flex items-center space-x-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span>タスクを追加</span>
-                </button>
+
+                <div>
+                  <label className="block text-sm text-text/70 mb-2">
+                    業界
+                  </label>
+                  <select
+                    value={setupData.industry}
+                    onChange={(e) =>
+                      setSetupData({
+                        ...setupData,
+                        industry: e.target.value as Industry,
+                      })
+                    }
+                    className="input-field w-full pr-8 appearance-none bg-white"
+                    style={{
+                      backgroundImage:
+                        'url(\'data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>\')',
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "calc(100% - 4px) center",
+                      backgroundSize: "16px",
+                    }}
+                    disabled={isTaxAccountant}
+                  >
+                    {industries.map((industry) => (
+                      <option key={industry} value={industry}>
+                        {industry}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-text/70 mb-2">
+                    事業年度開始年月
+                  </label>
+                  <p className="text-text font-medium">
+                    {setupData.fiscalYearStartYear || new Date().getFullYear()}
+                    年{setupData.fiscalYearStartMonth}月
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 財務・目標設定 */}
+            <div className="card">
+              <div className="flex items-center space-x-2 mb-4">
+                <Target className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                <h3 className="text-base sm:text-lg font-semibold text-text">
+                  財務・目標設定
+                </h3>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-text/70 mb-2">
+                    事業経験
+                  </label>
+                  <select
+                    value={setupData.businessExperience}
+                    onChange={(e) =>
+                      setSetupData({
+                        ...setupData,
+                        businessExperience: e.target
+                          .value as BusinessExperience,
+                      })
+                    }
+                    className="input-field w-full pr-8 appearance-none bg-white"
+                    style={{
+                      backgroundImage:
+                        'url(\'data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>\')',
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "calc(100% - 4px) center",
+                      backgroundSize: "16px",
+                    }}
+                    disabled={isTaxAccountant}
+                  >
+                    {experienceOptions.map((exp) => (
+                      <option key={exp} value={exp}>
+                        {exp}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-text/70 mb-2">
+                    財務知識レベル
+                  </label>
+                  <select
+                    value={setupData.financialKnowledge}
+                    onChange={(e) =>
+                      setSetupData({
+                        ...setupData,
+                        financialKnowledge: e.target
+                          .value as FinancialKnowledge,
+                      })
+                    }
+                    className="input-field w-full pr-8 appearance-none bg-white"
+                    style={{
+                      backgroundImage:
+                        'url(\'data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>\')',
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "calc(100% - 4px) center",
+                      backgroundSize: "16px",
+                    }}
+                    disabled={isTaxAccountant}
+                  >
+                    {knowledgeOptions.map((knowledge) => (
+                      <option key={knowledge} value={knowledge}>
+                        {knowledge}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </>
+      )}
 
+      <div
+        className={`grid grid-cols-1 ${
+          isTaxAccountant ? "" : "xl:grid-cols-2"
+        } gap-6`}
+      >
+        {!isTaxAccountant && (
+          <div className="card">
+            <div className="flex items-center space-x-2">
+              <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+              <h3 className="text-base sm:text-lg font-semibold text-text">
+                月次タスク通知設定
+              </h3>
+            </div>
+            <div className="text-base sm:text-lg mb-4 ml-4">
+              <p className="text-sm text-text/70">
+                登録メールアドレスに通知を送信
+                (デモ版では実際の通知は送信されません)
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {/* 既存タスク一覧 */}
+              <div className="space-y-2">
+                {tasks.map((task) => (
+                  <div
+                    key={task.id}
+                    className="p-3 border border-border rounded-lg"
+                  >
+                    {editingTaskId === task.id ? (
+                      // 編集モード
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm text-text/70 mb-1">
+                            タスク名
+                          </label>
+                          <input
+                            type="text"
+                            value={editingTaskName}
+                            onChange={(e) => setEditingTaskName(e.target.value)}
+                            className="input-field w-full"
+                            placeholder="タスク名を入力"
+                          />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <label className="text-sm text-text/70">毎月</label>
+                          <select
+                            value={editingTaskDay}
+                            onChange={(e) =>
+                              setEditingTaskDay(Number(e.target.value))
+                            }
+                            className="input-field pr-8 appearance-none bg-white"
+                            style={{
+                              backgroundImage:
+                                'url(\'data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>\')',
+                              backgroundRepeat: "no-repeat",
+                              backgroundPosition: "calc(100% - 4px) center",
+                              backgroundSize: "16px",
+                            }}
+                          >
+                            {Array.from({ length: 28 }, (_, i) => (
+                              <option key={i + 1} value={i + 1}>
+                                {i + 1}日
+                              </option>
+                            ))}
+                          </select>
+                          <label className="text-sm text-text/70">に通知</label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={saveEditingTask}
+                            className="btn-primary text-sm px-3 py-1 flex items-center"
+                          >
+                            <Save className="h-3 w-3 mr-1" />
+                            保存
+                          </button>
+                          <button
+                            onClick={cancelEditingTask}
+                            className="btn-secondary text-sm px-3 py-1"
+                          >
+                            キャンセル
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      // 通常表示
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <input
+                            type="checkbox"
+                            checked={task.enabled}
+                            onChange={() => handleTaskToggle(task.id)}
+                            className="rounded border-border text-primary focus:ring-primary"
+                            disabled={isTaxAccountant}
+                          />
+                          <div
+                            onDoubleClick={
+                              isTaxAccountant
+                                ? undefined
+                                : () => startEditingTask(task)
+                            }
+                            className="cursor-pointer hover:bg-gray-50 p-1 rounded"
+                            title={
+                              isTaxAccountant ? "" : "ダブルクリックで編集"
+                            }
+                          >
+                            <p className="font-medium text-text">{task.name}</p>
+                            <p className="text-sm text-text/70">
+                              毎月{task.day}日に通知
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteTask(task.id)}
+                          className="text-error hover:bg-error/10 p-1 rounded"
+                          disabled={isTaxAccountant}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* 新しいタスクの追加 */}
+              <div className="border-t border-border pt-4">
+                <h4 className="font-medium text-text mb-3">
+                  新しいタスクを追加
+                </h4>
+                <div className="space-y-3">
+                  <input
+                    type="text"
+                    value={newTaskName}
+                    onChange={(e) => setNewTaskName(e.target.value)}
+                    className="input-field w-full"
+                    placeholder="タスク名を入力"
+                    disabled={isTaxAccountant}
+                  />
+                  <div className="flex items-center space-x-2">
+                    <label className="text-sm text-text/70">毎月</label>
+                    <select
+                      value={newTaskDay}
+                      onChange={(e) => setNewTaskDay(Number(e.target.value))}
+                      className="input-field pr-8 appearance-none bg-white"
+                      style={{
+                        backgroundImage:
+                          'url(\'data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>\')',
+                        backgroundRepeat: "no-repeat",
+                        backgroundPosition: "calc(100% - 4px) center",
+                        backgroundSize: "16px",
+                      }}
+                      disabled={isTaxAccountant}
+                    >
+                      {Array.from({ length: 28 }, (_, i) => (
+                        <option key={i + 1} value={i + 1}>
+                          {i + 1}日
+                        </option>
+                      ))}
+                    </select>
+                    <label className="text-sm text-text/70">に通知</label>
+                  </div>
+                  <button
+                    onClick={handleAddTask}
+                    className="btn-secondary flex items-center space-x-2"
+                    disabled={isTaxAccountant}
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>タスクを追加</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {/* ユーザー情報設定 */}
         <div className="card">
           <div className="flex items-center space-x-2 mb-4">
@@ -742,9 +776,12 @@ const Settings: React.FC = () => {
               <input
                 type="text"
                 value={userInfo.name}
-                onChange={(e) =>
-                  setUserInfo({ ...userInfo, name: e.target.value })
-                }
+                onChange={(e) => {
+                  setUserInfo({ ...userInfo, name: e.target.value });
+                  if (setupData) {
+                    setSetupData({ ...setupData, userName: e.target.value });
+                  }
+                }}
                 className="input-field w-full"
               />
             </div>
@@ -759,6 +796,7 @@ const Settings: React.FC = () => {
                   setUserInfo({ ...userInfo, email: e.target.value })
                 }
                 className="input-field w-full"
+                disabled={isTaxAccountant}
               />
             </div>
             <div>
@@ -768,9 +806,15 @@ const Settings: React.FC = () => {
               <input
                 type="tel"
                 value={userInfo.phone}
-                onChange={(e) =>
-                  setUserInfo({ ...userInfo, phone: e.target.value })
-                }
+                onChange={(e) => {
+                  setUserInfo({ ...userInfo, phone: e.target.value });
+                  if (setupData) {
+                    setSetupData({
+                      ...setupData,
+                      phoneNumber: e.target.value,
+                    });
+                  }
+                }}
                 className="input-field w-full"
               />
             </div>

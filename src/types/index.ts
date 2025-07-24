@@ -139,6 +139,7 @@ export interface AuthUser {
   isSetupComplete: boolean;
   createdAt: Date;
   lastLogin: Date;
+  role?: string;
 }
 
 export interface LoginRequest {

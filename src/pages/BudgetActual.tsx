@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Download, Save } from "lucide-react";
+import { Download, Save, Upload } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -1984,6 +1984,11 @@ const BudgetActual: React.FC = () => {
           予実管理（デモ版）
         </h1>
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <label className="btn-secondary flex items-center justify-center space-x-2 text-sm cursor-pointer">
+            <Upload className="h-4 w-4" />
+            <span className="hidden sm:inline">損益計算書 読み込み</span>
+            <input type="file" accept=".pdf" className="hidden" />
+          </label>
           <button
             onClick={handleDataExport}
             className="btn-secondary flex items-center justify-center space-x-2 text-sm"

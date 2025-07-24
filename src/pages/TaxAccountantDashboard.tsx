@@ -1,22 +1,22 @@
 import React, { useState, useEffect } from "react";
 import {
   Users,
-  TrendingUp,
-  TrendingDown,
   DollarSign,
   Target,
   Calendar,
   ChevronRight,
   ArrowLeft,
   BarChart3,
-  PieChart,
-  Calculator,
   User,
   MessageSquare,
   CheckCircle,
   ChevronDown,
   ChevronUp,
   History,
+  Map,
+  PlusCircle,
+  XCircle,
+  Plus,
 } from "lucide-react";
 
 interface CommentHistory {
@@ -26,33 +26,52 @@ interface CommentHistory {
   yearMonth: string; // YYYY-MM形式
 }
 
+interface PerformanceMetrics {
+  target: number;
+  actual: number;
+  achievementRate: number;
+}
+
+interface MonthlyPerformance {
+  sales: PerformanceMetrics;
+  grossProfit: PerformanceMetrics;
+  operatingProfit: PerformanceMetrics;
+}
+
+interface RoadmapAdvice {
+  title: string;
+  advice: string;
+  details: string[];
+}
+
+interface RoadmapQuarter {
+  [quarter: number]: RoadmapAdvice;
+}
+
+interface RoadmapYear {
+  year: number;
+  quarters: RoadmapQuarter;
+}
+
 interface UserPerformanceData {
   userId: string;
   userName: string;
   email: string;
+  password?: string;
   businessName: string;
+  capital?: number;
+  companySize?: string;
+  industry?: string;
+  businessStartDate?: string;
+  knowledgeLevel?: string;
   lastUpdated: string;
   fiscalYearEndMonth: number; // 決算月（1-12）
 
-  // 先月データ
-  lastMonthSalesTarget: number;
-  lastMonthSalesActual: number;
-  lastMonthSalesAchievementRate: number;
-  lastMonthProfitTarget: number;
-  lastMonthProfitActual: number;
-  lastMonthProfitAchievementRate: number;
-
-  // 今月データ
-  currentMonthSalesTarget: number;
-  currentMonthSalesActual: number;
-  currentMonthSalesAchievementRate: number;
-  currentMonthProfitTarget: number;
-  currentMonthProfitActual: number;
-  currentMonthProfitAchievementRate: number;
-
-  // 前年同月比・累計
-  yearOverYearComparison: number;
-  cumulativeAchievementRate: number;
+  performance: {
+    currentMonth: MonthlyPerformance;
+    lastMonth: MonthlyPerformance;
+    twoMonthsAgo: MonthlyPerformance;
+  };
 
   // コメント関連
   hasComment: boolean;
@@ -61,7 +80,147 @@ interface UserPerformanceData {
 
   // コメント履歴
   commentHistory: CommentHistory[];
+
+  // ナビゲーションデータ
+  roadmap: RoadmapYear[];
 }
+
+const defaultRoadmapYear1: RoadmapQuarter = {
+  1: {
+    title: "事業をスタートさせよう",
+    advice: "個人事業主の届出や会社設立から始めよう",
+    details: [
+      "個人事業主の届出や会社設立の手続き",
+      "「どんな商品・サービスを誰に売るか」を明確にする",
+      "開業資金を準備する（自分のお金や借入）",
+      "家計簿のような帳簿をつける仕組みを作る",
+    ],
+  },
+  2: {
+    title: "最初のお客様を見つけよう",
+    advice: "実際に商品・サービスを売り始めよう",
+    details: [
+      "実際に商品・サービスを売り始める",
+      "「いくら売れたか」を記録する",
+      "毎月の売上と支出をチェックする習慣をつける",
+      "確定申告の準備を始める",
+    ],
+  },
+  3: {
+    title: "売上を伸ばしていこう",
+    advice: "お客様を増やす活動に力を入れよう",
+    details: [
+      "お客様を増やす活動に力を入れる",
+      "「今月はいくら売りたいか」目標を決める",
+      "お金の出入りを毎月チェックする",
+      "税金の申告について勉強し始める",
+    ],
+  },
+  4: {
+    title: "1年目の成果を確認しよう",
+    advice: "確定申告・決算を行おう",
+    details: [
+      "確定申告・決算を行う",
+      "「1年間でいくら売れたか、いくら残ったか」を計算",
+      "来年の目標を立てる",
+      "貯金がどれくらい増えたかチェック",
+    ],
+  },
+};
+
+const defaultRoadmapYear2: RoadmapQuarter = {
+  1: {
+    title: "事業を安定させよう",
+    advice: "既存のお客様との関係を大切にしよう",
+    details: [
+      "既存のお客様との関係を大切にする",
+      "「来月はいくら売れそうか」予測の精度を上げる",
+      "無駄な出費がないかチェックする",
+      "人を雇うかどうか検討する",
+    ],
+  },
+  2: {
+    title: "事業を大きくする準備をしよう",
+    advice: "スタッフを雇って教育しよう",
+    details: [
+      "スタッフを雇って教育する",
+      "仕事の流れを整理して効率化する",
+      "売上管理をもっと詳しくする",
+      "3年後の目標を考える",
+    ],
+  },
+  3: {
+    title: "事業を広げよう",
+    advice: "新しい商品・サービスを考えよう",
+    details: [
+      "新しい商品・サービスを考える",
+      "営業活動を強化する",
+      "「売上に対してどれくらい利益が出ているか」を改善",
+      "設備投資を検討する",
+    ],
+  },
+  4: {
+    title: "経営の基盤を固めよう",
+    advice: "2年目の決算・税務申告を行おう",
+    details: [
+      "2年目の決算・税務申告",
+      "お金の流れをもっと詳しく分析",
+      "来年の詳しい予算を作る",
+      "個人の資産がどれくらい増えたかチェック",
+    ],
+  },
+};
+
+const generateDefaultRoadmap = (): RoadmapYear[] => {
+  const roadmap: RoadmapYear[] = [];
+  for (let i = 0; i < 11; i++) {
+    const year = 2024 + i;
+    if (year === 2024) {
+      roadmap.push({ year, quarters: defaultRoadmapYear1 });
+    } else if (year < 2034) {
+      roadmap.push({ year, quarters: defaultRoadmapYear2 });
+    } else {
+      // 2034
+      const goalAdvice: RoadmapAdvice = {
+        title: "10年間のゴール",
+        advice: "目標に向けて歩むあなたを、この場所で待っています。",
+        details: [],
+      };
+      roadmap.push({
+        year: 2034,
+        quarters: {
+          1: goalAdvice,
+          2: goalAdvice,
+          3: goalAdvice,
+          4: goalAdvice,
+        },
+      });
+    }
+  }
+  return roadmap;
+};
+
+const generateDefaultPerformance = (): {
+  currentMonth: MonthlyPerformance;
+  lastMonth: MonthlyPerformance;
+  twoMonthsAgo: MonthlyPerformance;
+} => {
+  const zeroMetrics: PerformanceMetrics = {
+    target: 0,
+    actual: 0,
+    achievementRate: 0,
+  };
+  const zeroMonthly: MonthlyPerformance = {
+    sales: zeroMetrics,
+    grossProfit: zeroMetrics,
+    operatingProfit: zeroMetrics,
+  };
+  return {
+    currentMonth: zeroMonthly,
+    lastMonth: zeroMonthly,
+    twoMonthsAgo: zeroMonthly,
+  };
+};
 
 // デモ用のクライアントデータ
 const DEMO_USERS: UserPerformanceData[] = [
@@ -70,22 +229,42 @@ const DEMO_USERS: UserPerformanceData[] = [
     userName: "田中 太郎",
     email: "tanaka@example.com",
     businessName: "田中コンサルティング",
+    capital: 10000000,
+    companySize: "6-20人",
+    industry: "コンサルティング",
+    businessStartDate: "2023-04",
+    knowledgeLevel: "中級者",
     lastUpdated: "2025-07-05",
     fiscalYearEndMonth: 3, // 3月決算
-    lastMonthSalesTarget: 1000000,
-    lastMonthSalesActual: 950000,
-    lastMonthSalesAchievementRate: 95.0,
-    lastMonthProfitTarget: 400000,
-    lastMonthProfitActual: 380000,
-    lastMonthProfitAchievementRate: 95.0,
-    currentMonthSalesTarget: 1200000,
-    currentMonthSalesActual: 800000,
-    currentMonthSalesAchievementRate: 66.7,
-    currentMonthProfitTarget: 500000,
-    currentMonthProfitActual: 320000,
-    currentMonthProfitAchievementRate: 64.0,
-    yearOverYearComparison: 112.5,
-    cumulativeAchievementRate: 88.5,
+    performance: {
+      twoMonthsAgo: {
+        sales: { target: 1000000, actual: 1050000, achievementRate: 105.0 },
+        grossProfit: { target: 400000, actual: 420000, achievementRate: 105.0 },
+        operatingProfit: {
+          target: 200000,
+          actual: 210000,
+          achievementRate: 105.0,
+        },
+      },
+      lastMonth: {
+        sales: { target: 1000000, actual: 950000, achievementRate: 95.0 },
+        grossProfit: { target: 400000, actual: 380000, achievementRate: 95.0 },
+        operatingProfit: {
+          target: 200000,
+          actual: 190000,
+          achievementRate: 95.0,
+        },
+      },
+      currentMonth: {
+        sales: { target: 1200000, actual: 800000, achievementRate: 66.7 },
+        grossProfit: { target: 500000, actual: 320000, achievementRate: 64.0 },
+        operatingProfit: {
+          target: 250000,
+          actual: 160000,
+          achievementRate: 64.0,
+        },
+      },
+    },
     hasComment: true,
     comment:
       "7月は売上が目標を下回っていますが、6月は順調でした。夏季の集客アップと経費管理を見直し、秋に向けて準備を進めることをお勧めします。",
@@ -120,28 +299,49 @@ const DEMO_USERS: UserPerformanceData[] = [
         yearMonth: "2025-07",
       },
     ],
+    roadmap: generateDefaultRoadmap(),
   },
   {
     userId: "user002",
     userName: "佐藤 花子",
     email: "sato@example.com",
     businessName: "佐藤デザイン事務所",
+    capital: 3000000,
+    companySize: "1-5人",
+    industry: "デザイン",
+    businessStartDate: "2024-01",
+    knowledgeLevel: "初心者",
     lastUpdated: "2025-07-04",
     fiscalYearEndMonth: 12, // 12月決算
-    lastMonthSalesTarget: 800000,
-    lastMonthSalesActual: 920000,
-    lastMonthSalesAchievementRate: 115.0,
-    lastMonthProfitTarget: 320000,
-    lastMonthProfitActual: 380000,
-    lastMonthProfitAchievementRate: 118.8,
-    currentMonthSalesTarget: 900000,
-    currentMonthSalesActual: 750000,
-    currentMonthSalesAchievementRate: 83.3,
-    currentMonthProfitTarget: 360000,
-    currentMonthProfitActual: 300000,
-    currentMonthProfitAchievementRate: 83.3,
-    yearOverYearComparison: 125.8,
-    cumulativeAchievementRate: 95.2,
+    performance: {
+      twoMonthsAgo: {
+        sales: { target: 800000, actual: 820000, achievementRate: 102.5 },
+        grossProfit: { target: 320000, actual: 330000, achievementRate: 103.1 },
+        operatingProfit: {
+          target: 160000,
+          actual: 165000,
+          achievementRate: 103.1,
+        },
+      },
+      lastMonth: {
+        sales: { target: 800000, actual: 920000, achievementRate: 115.0 },
+        grossProfit: { target: 320000, actual: 380000, achievementRate: 118.8 },
+        operatingProfit: {
+          target: 160000,
+          actual: 190000,
+          achievementRate: 118.8,
+        },
+      },
+      currentMonth: {
+        sales: { target: 900000, actual: 750000, achievementRate: 83.3 },
+        grossProfit: { target: 360000, actual: 300000, achievementRate: 83.3 },
+        operatingProfit: {
+          target: 180000,
+          actual: 150000,
+          achievementRate: 83.3,
+        },
+      },
+    },
     hasComment: true,
     comment:
       "6月は目標を大幅に上回る結果で素晴らしいです！7月も堅調に推移しています。創意工夫とクライアント満足度の維持を心がけてください。",
@@ -162,28 +362,49 @@ const DEMO_USERS: UserPerformanceData[] = [
         yearMonth: "2025-07",
       },
     ],
+    roadmap: generateDefaultRoadmap(),
   },
   {
     userId: "user003",
     userName: "山田 一郎",
     email: "yamada@example.com",
     businessName: "山田商事",
+    capital: 50000000,
+    companySize: "21-50人",
+    industry: "卸売",
+    businessStartDate: "2020-06",
+    knowledgeLevel: "上級者",
     lastUpdated: "2025-07-03",
     fiscalYearEndMonth: 6, // 6月決算
-    lastMonthSalesTarget: 1500000,
-    lastMonthSalesActual: 1350000,
-    lastMonthSalesAchievementRate: 90.0,
-    lastMonthProfitTarget: 600000,
-    lastMonthProfitActual: 540000,
-    lastMonthProfitAchievementRate: 90.0,
-    currentMonthSalesTarget: 1600000,
-    currentMonthSalesActual: 1200000,
-    currentMonthSalesAchievementRate: 75.0,
-    currentMonthProfitTarget: 640000,
-    currentMonthProfitActual: 480000,
-    currentMonthProfitAchievementRate: 75.0,
-    yearOverYearComparison: 108.2,
-    cumulativeAchievementRate: 82.5,
+    performance: {
+      twoMonthsAgo: {
+        sales: { target: 1400000, actual: 1300000, achievementRate: 92.9 },
+        grossProfit: { target: 560000, actual: 520000, achievementRate: 92.9 },
+        operatingProfit: {
+          target: 280000,
+          actual: 260000,
+          achievementRate: 92.9,
+        },
+      },
+      lastMonth: {
+        sales: { target: 1500000, actual: 1350000, achievementRate: 90.0 },
+        grossProfit: { target: 600000, actual: 540000, achievementRate: 90.0 },
+        operatingProfit: {
+          target: 300000,
+          actual: 270000,
+          achievementRate: 90.0,
+        },
+      },
+      currentMonth: {
+        sales: { target: 1600000, actual: 1200000, achievementRate: 75.0 },
+        grossProfit: { target: 640000, actual: 480000, achievementRate: 75.0 },
+        operatingProfit: {
+          target: 320000,
+          actual: 240000,
+          achievementRate: 75.0,
+        },
+      },
+    },
     hasComment: false,
     comment: "",
     commentDate: "",
@@ -196,28 +417,49 @@ const DEMO_USERS: UserPerformanceData[] = [
         yearMonth: "2025-05",
       },
     ],
+    roadmap: generateDefaultRoadmap(),
   },
   {
     userId: "user004",
     userName: "鈴木 美咲",
     email: "suzuki@example.com",
     businessName: "鈴木マーケティング",
+    capital: 5000000,
+    companySize: "1-5人",
+    industry: "マーケティング",
+    businessStartDate: "2023-10",
+    knowledgeLevel: "初心者",
     lastUpdated: "2025-07-05",
     fiscalYearEndMonth: 9, // 9月決算
-    lastMonthSalesTarget: 600000,
-    lastMonthSalesActual: 680000,
-    lastMonthSalesAchievementRate: 113.3,
-    lastMonthProfitTarget: 240000,
-    lastMonthProfitActual: 272000,
-    lastMonthProfitAchievementRate: 113.3,
-    currentMonthSalesTarget: 700000,
-    currentMonthSalesActual: 520000,
-    currentMonthSalesAchievementRate: 74.3,
-    currentMonthProfitTarget: 280000,
-    currentMonthProfitActual: 208000,
-    currentMonthProfitAchievementRate: 74.3,
-    yearOverYearComparison: 118.7,
-    cumulativeAchievementRate: 93.8,
+    performance: {
+      twoMonthsAgo: {
+        sales: { target: 500000, actual: 550000, achievementRate: 110.0 },
+        grossProfit: { target: 200000, actual: 220000, achievementRate: 110.0 },
+        operatingProfit: {
+          target: 100000,
+          actual: 110000,
+          achievementRate: 110.0,
+        },
+      },
+      lastMonth: {
+        sales: { target: 600000, actual: 680000, achievementRate: 113.3 },
+        grossProfit: { target: 240000, actual: 272000, achievementRate: 113.3 },
+        operatingProfit: {
+          target: 120000,
+          actual: 136000,
+          achievementRate: 113.3,
+        },
+      },
+      currentMonth: {
+        sales: { target: 700000, actual: 520000, achievementRate: 74.3 },
+        grossProfit: { target: 280000, actual: 208000, achievementRate: 74.3 },
+        operatingProfit: {
+          target: 140000,
+          actual: 104000,
+          achievementRate: 74.3,
+        },
+      },
+    },
     hasComment: false,
     comment: "",
     commentDate: "",
@@ -230,28 +472,49 @@ const DEMO_USERS: UserPerformanceData[] = [
         yearMonth: "2025-04",
       },
     ],
+    roadmap: generateDefaultRoadmap(),
   },
   {
     userId: "user005",
     userName: "高橋 健太",
     email: "takahashi@example.com",
     businessName: "高橋IT開発",
+    capital: 20000000,
+    companySize: "6-20人",
+    industry: "IT",
+    businessStartDate: "2021-02",
+    knowledgeLevel: "中級者",
     lastUpdated: "2025-07-02",
     fiscalYearEndMonth: 12, // 12月決算
-    lastMonthSalesTarget: 2000000,
-    lastMonthSalesActual: 2200000,
-    lastMonthSalesAchievementRate: 110.0,
-    lastMonthProfitTarget: 800000,
-    lastMonthProfitActual: 880000,
-    lastMonthProfitAchievementRate: 110.0,
-    currentMonthSalesTarget: 2100000,
-    currentMonthSalesActual: 1800000,
-    currentMonthSalesAchievementRate: 85.7,
-    currentMonthProfitTarget: 840000,
-    currentMonthProfitActual: 720000,
-    currentMonthProfitAchievementRate: 85.7,
-    yearOverYearComparison: 135.2,
-    cumulativeAchievementRate: 102.3,
+    performance: {
+      twoMonthsAgo: {
+        sales: { target: 1800000, actual: 1900000, achievementRate: 105.6 },
+        grossProfit: { target: 720000, actual: 760000, achievementRate: 105.6 },
+        operatingProfit: {
+          target: 360000,
+          actual: 380000,
+          achievementRate: 105.6,
+        },
+      },
+      lastMonth: {
+        sales: { target: 2000000, actual: 2200000, achievementRate: 110.0 },
+        grossProfit: { target: 800000, actual: 880000, achievementRate: 110.0 },
+        operatingProfit: {
+          target: 400000,
+          actual: 440000,
+          achievementRate: 110.0,
+        },
+      },
+      currentMonth: {
+        sales: { target: 2100000, actual: 1800000, achievementRate: 85.7 },
+        grossProfit: { target: 840000, actual: 720000, achievementRate: 85.7 },
+        operatingProfit: {
+          target: 420000,
+          actual: 360000,
+          achievementRate: 85.7,
+        },
+      },
+    },
     hasComment: true,
     comment:
       "IT開発案件の受注が好調です。技術者のスキルアップと品質管理を継続していきましょう。",
@@ -272,6 +535,7 @@ const DEMO_USERS: UserPerformanceData[] = [
         yearMonth: "2025-07",
       },
     ],
+    roadmap: generateDefaultRoadmap(),
   },
 ];
 
@@ -281,33 +545,101 @@ const TaxAccountantDashboard: React.FC = () => {
   );
   const [users, setUsers] = useState<UserPerformanceData[]>(DEMO_USERS);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState<"name" | "performance">("name");
   const [currentComment, setCurrentComment] = useState("");
   const [isCommentSaving, setIsCommentSaving] = useState(false);
   const [showCommentHistory, setShowCommentHistory] = useState(false);
   const [selectedYear, setSelectedYear] = useState<string>("");
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // デモデータを読み込み
   useEffect(() => {
-    const loadDemoData = async () => {
-      try {
-        setIsLoading(true);
+    // デモ用のローディングシミュレーション
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000); // 1秒後にローディングを終了
 
-        // デモ用の遅延
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      } catch (err) {
-        console.error("デモデータ読み込みエラー:", err);
-        setError("データの読み込み中にエラーが発生しました");
-      } finally {
-        setIsLoading(false);
-      }
+    return () => clearTimeout(timer); // クリーンアップ関数
+  }, []); // 空の依存配列でコンポーネントマウント時に一度だけ実行
+
+  const [editableRoadmap, setEditableRoadmap] = useState<RoadmapYear[]>([]);
+  const [openYear, setOpenYear] = useState<number | null>(null);
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+
+  const industryOptions = [
+    "コンサルティング",
+    "デザイン",
+    "卸売",
+    "マーケティング",
+    "IT",
+    "小売",
+    "飲食",
+    "建設",
+    "不動産",
+    "その他",
+  ];
+
+  const initialNewUserState = {
+    userName: "",
+    email: "",
+    password: "",
+    businessName: "",
+    capital: 0,
+    companySize: "1-5人",
+    industry: "コンサルティング",
+    businessStartDate: "",
+    knowledgeLevel: "初心者",
+    fiscalYearEndMonth: 12,
+  };
+
+  const [newUser, setNewUser] = useState(initialNewUserState);
+
+  const handleNewUserChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setNewUser((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddNewUser = () => {
+    if (
+      !newUser.email ||
+      !newUser.userName ||
+      !newUser.password ||
+      !newUser.businessName
+    ) {
+      alert(
+        "必須項目（メールアドレス、パスワード、ユーザー名、会社名）を入力してください。"
+      );
+      return;
+    }
+
+    const newUserWithDefaults: UserPerformanceData = {
+      userId: `user_${Date.now()}`,
+      lastUpdated: new Date().toISOString().split("T")[0],
+      performance: generateDefaultPerformance(),
+      hasComment: false,
+      comment: "",
+      commentDate: "",
+      commentHistory: [],
+      roadmap: generateDefaultRoadmap(),
+      ...newUser,
+      capital: Number(newUser.capital), // ensure capital is a number
     };
 
-    loadDemoData();
-  }, []);
+    setUsers((prevUsers) => [...prevUsers, newUserWithDefaults]);
+    setIsAddUserModalOpen(false);
+    setNewUser(initialNewUserState);
+  };
+
+  // selectedUser が変更されたときにロードマップ編集用のstateを更新
+  useEffect(() => {
+    if (selectedUser) {
+      setEditableRoadmap(selectedUser.roadmap);
+    } else {
+      setEditableRoadmap([]);
+    }
+    setOpenYear(null); // ユーザー切り替え時にアコーディオンを閉じる
+  }, [selectedUser]);
 
   // フィルタリングとソート
   const filteredAndSortedUsers = users
@@ -316,16 +648,7 @@ const TaxAccountantDashboard: React.FC = () => {
         user.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.businessName.toLowerCase().includes(searchTerm.toLowerCase())
     )
-    .sort((a, b) => {
-      switch (sortBy) {
-        case "name":
-          return a.userName.localeCompare(b.userName);
-        case "performance":
-          return b.cumulativeAchievementRate - a.cumulativeAchievementRate;
-        default:
-          return 0;
-      }
-    });
+    .sort((a, b) => a.userName.localeCompare(b.userName));
 
   const formatCurrency = (amount: number) => {
     return (amount / 10000).toFixed(0) + "万円";
@@ -512,8 +835,118 @@ const TaxAccountantDashboard: React.FC = () => {
     return monthNames[month as keyof typeof monthNames] || `${month}月`;
   };
 
+  const handleRoadmapChange = (
+    year: number,
+    quarter: number,
+    field: "title" | "advice",
+    value: string
+  ) => {
+    setEditableRoadmap((prev) =>
+      prev.map((y) => {
+        if (y.year === year) {
+          const newQuarters = { ...y.quarters };
+          newQuarters[quarter] = {
+            ...newQuarters[quarter],
+            [field]: value,
+          };
+          return { ...y, quarters: newQuarters };
+        }
+        return y;
+      })
+    );
+  };
+
+  const handleDetailChange = (
+    year: number,
+    quarter: number,
+    detailIndex: number,
+    value: string
+  ) => {
+    setEditableRoadmap((prev) =>
+      prev.map((y) => {
+        if (y.year === year) {
+          const newQuarters = { ...y.quarters };
+          const newDetails = [...newQuarters[quarter].details];
+          newDetails[detailIndex] = value;
+          newQuarters[quarter] = {
+            ...newQuarters[quarter],
+            details: newDetails,
+          };
+          return { ...y, quarters: newQuarters };
+        }
+        return y;
+      })
+    );
+  };
+
+  const addDetail = (year: number, quarter: number) => {
+    setEditableRoadmap((prev) =>
+      prev.map((y) => {
+        if (y.year === year) {
+          const newQuarters = { ...y.quarters };
+          const newDetails = [...newQuarters[quarter].details, ""];
+          newQuarters[quarter] = {
+            ...newQuarters[quarter],
+            details: newDetails,
+          };
+          return { ...y, quarters: newQuarters };
+        }
+        return y;
+      })
+    );
+  };
+
+  const removeDetail = (year: number, quarter: number, detailIndex: number) => {
+    setEditableRoadmap((prev) =>
+      prev.map((y) => {
+        if (y.year === year) {
+          const newQuarters = { ...y.quarters };
+          const newDetails = newQuarters[quarter].details.filter(
+            (_, i) => i !== detailIndex
+          );
+          newQuarters[quarter] = {
+            ...newQuarters[quarter],
+            details: newDetails,
+          };
+          return { ...y, quarters: newQuarters };
+        }
+        return y;
+      })
+    );
+  };
+
+  const handleSaveRoadmap = () => {
+    if (!selectedUser) return; // ユーザーが選択されていない場合は何もしない
+
+    const updatedUsers = users.map((user) =>
+      user.userId === selectedUser.userId
+        ? { ...user, roadmap: editableRoadmap }
+        : user
+    );
+    setUsers(updatedUsers);
+
+    const updatedSelectedUser = updatedUsers.find(
+      (user) => user.userId === selectedUser.userId
+    );
+    if (updatedSelectedUser) {
+      setSelectedUser(updatedSelectedUser);
+    }
+    alert("ナビゲーションを保存しました (デモモード)");
+  };
+
   // ユーザー詳細画面
   if (selectedUser) {
+    const currentDate = new Date("2025-07-01"); // デモデータに基づいた現在日付
+    const formatYearMonth = (date: Date) => {
+      return `${date.getFullYear()}年${date.getMonth() + 1}月`;
+    };
+
+    const currentMonthDate = currentDate;
+    const lastMonthDate = new Date(currentDate);
+    lastMonthDate.setMonth(currentDate.getMonth() - 1);
+    const twoMonthsAgoDate = new Date(currentDate);
+    twoMonthsAgoDate.setMonth(currentDate.getMonth() - 2);
+
     return (
       <div className="space-y-6">
         {/* ヘッダー */}
@@ -552,85 +985,295 @@ const TaxAccountantDashboard: React.FC = () => {
         </div>
 
         {/* 予実管理状況 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* 先月実績 */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* 先々月実績 */}
           <div className="card">
             <h3 className="text-lg font-semibold text-text mb-4 flex items-center space-x-2">
-              <Calendar className="h-5 w-5 text-primary" />
-              <span>先月実績</span>
+              <History className="h-5 w-5 text-primary" />
+              <span>{`${formatYearMonth(twoMonthsAgoDate)}実績`}</span>
             </h3>
-
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* 売上 */}
               <div
-                className={`p-4 rounded-lg border ${getPerformanceBgColor(
-                  selectedUser.lastMonthSalesAchievementRate
+                className={`p-3 rounded-lg border ${getPerformanceBgColor(
+                  selectedUser.performance.twoMonthsAgo.sales.achievementRate
                 )}`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-text/70">売上</span>
                   <DollarSign className="h-4 w-4 text-primary" />
                 </div>
-                <div className="grid grid-cols-3 gap-4 text-sm">
+                <div className="grid grid-cols-3 gap-2 text-sm">
                   <div>
                     <p className="text-text/60">目標</p>
                     <p className="font-semibold">
-                      {formatCurrency(selectedUser.lastMonthSalesTarget)}
+                      {formatCurrency(
+                        selectedUser.performance.twoMonthsAgo.sales.target
+                      )}
                     </p>
                   </div>
                   <div>
                     <p className="text-text/60">実績</p>
                     <p className="font-semibold">
-                      {formatCurrency(selectedUser.lastMonthSalesActual)}
+                      {formatCurrency(
+                        selectedUser.performance.twoMonthsAgo.sales.actual
+                      )}
                     </p>
                   </div>
                   <div>
                     <p className="text-text/60">達成率</p>
                     <p
                       className={`font-bold ${getPerformanceColor(
-                        selectedUser.lastMonthSalesAchievementRate
+                        selectedUser.performance.twoMonthsAgo.sales
+                          .achievementRate
                       )}`}
                     >
                       {formatPercentage(
-                        selectedUser.lastMonthSalesAchievementRate
+                        selectedUser.performance.twoMonthsAgo.sales
+                          .achievementRate
                       )}
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* 利益 */}
+              {/* 粗利益 */}
               <div
-                className={`p-4 rounded-lg border ${getPerformanceBgColor(
-                  selectedUser.lastMonthProfitAchievementRate
+                className={`p-3 rounded-lg border ${getPerformanceBgColor(
+                  selectedUser.performance.twoMonthsAgo.grossProfit
+                    .achievementRate
                 )}`}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-text/70">利益</span>
+                  <span className="text-sm font-medium text-text/70">
+                    粗利益
+                  </span>
                   <Target className="h-4 w-4 text-success" />
                 </div>
-                <div className="grid grid-cols-3 gap-4 text-sm">
+                <div className="grid grid-cols-3 gap-2 text-sm">
                   <div>
                     <p className="text-text/60">目標</p>
                     <p className="font-semibold">
-                      {formatCurrency(selectedUser.lastMonthProfitTarget)}
+                      {formatCurrency(
+                        selectedUser.performance.twoMonthsAgo.grossProfit.target
+                      )}
                     </p>
                   </div>
                   <div>
                     <p className="text-text/60">実績</p>
                     <p className="font-semibold">
-                      {formatCurrency(selectedUser.lastMonthProfitActual)}
+                      {formatCurrency(
+                        selectedUser.performance.twoMonthsAgo.grossProfit.actual
+                      )}
                     </p>
                   </div>
                   <div>
                     <p className="text-text/60">達成率</p>
                     <p
                       className={`font-bold ${getPerformanceColor(
-                        selectedUser.lastMonthProfitAchievementRate
+                        selectedUser.performance.twoMonthsAgo.grossProfit
+                          .achievementRate
                       )}`}
                     >
                       {formatPercentage(
-                        selectedUser.lastMonthProfitAchievementRate
+                        selectedUser.performance.twoMonthsAgo.grossProfit
+                          .achievementRate
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 営業利益 */}
+              <div
+                className={`p-3 rounded-lg border ${getPerformanceBgColor(
+                  selectedUser.performance.twoMonthsAgo.operatingProfit
+                    .achievementRate
+                )}`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-text/70">
+                    営業利益
+                  </span>
+                  <Target className="h-4 w-4 text-info" />
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div>
+                    <p className="text-text/60">目標</p>
+                    <p className="font-semibold">
+                      {formatCurrency(
+                        selectedUser.performance.twoMonthsAgo.operatingProfit
+                          .target
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-text/60">実績</p>
+                    <p className="font-semibold">
+                      {formatCurrency(
+                        selectedUser.performance.twoMonthsAgo.operatingProfit
+                          .actual
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-text/60">達成率</p>
+                    <p
+                      className={`font-bold ${getPerformanceColor(
+                        selectedUser.performance.twoMonthsAgo.operatingProfit
+                          .achievementRate
+                      )}`}
+                    >
+                      {formatPercentage(
+                        selectedUser.performance.twoMonthsAgo.operatingProfit
+                          .achievementRate
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 先月実績 */}
+          <div className="card">
+            <h3 className="text-lg font-semibold text-text mb-4 flex items-center space-x-2">
+              <Calendar className="h-5 w-5 text-primary" />
+              <span>{`${formatYearMonth(lastMonthDate)}実績`}</span>
+            </h3>
+
+            <div className="space-y-3">
+              {/* 売上 */}
+              <div
+                className={`p-3 rounded-lg border ${getPerformanceBgColor(
+                  selectedUser.performance.lastMonth.sales.achievementRate
+                )}`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-text/70">売上</span>
+                  <DollarSign className="h-4 w-4 text-primary" />
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div>
+                    <p className="text-text/60">目標</p>
+                    <p className="font-semibold">
+                      {formatCurrency(
+                        selectedUser.performance.lastMonth.sales.target
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-text/60">実績</p>
+                    <p className="font-semibold">
+                      {formatCurrency(
+                        selectedUser.performance.lastMonth.sales.actual
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-text/60">達成率</p>
+                    <p
+                      className={`font-bold ${getPerformanceColor(
+                        selectedUser.performance.lastMonth.sales.achievementRate
+                      )}`}
+                    >
+                      {formatPercentage(
+                        selectedUser.performance.lastMonth.sales.achievementRate
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 粗利益 */}
+              <div
+                className={`p-3 rounded-lg border ${getPerformanceBgColor(
+                  selectedUser.performance.lastMonth.grossProfit.achievementRate
+                )}`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-text/70">
+                    粗利益
+                  </span>
+                  <Target className="h-4 w-4 text-success" />
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div>
+                    <p className="text-text/60">目標</p>
+                    <p className="font-semibold">
+                      {formatCurrency(
+                        selectedUser.performance.lastMonth.grossProfit.target
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-text/60">実績</p>
+                    <p className="font-semibold">
+                      {formatCurrency(
+                        selectedUser.performance.lastMonth.grossProfit.actual
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-text/60">達成率</p>
+                    <p
+                      className={`font-bold ${getPerformanceColor(
+                        selectedUser.performance.lastMonth.grossProfit
+                          .achievementRate
+                      )}`}
+                    >
+                      {formatPercentage(
+                        selectedUser.performance.lastMonth.grossProfit
+                          .achievementRate
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 営業利益 */}
+              <div
+                className={`p-3 rounded-lg border ${getPerformanceBgColor(
+                  selectedUser.performance.lastMonth.operatingProfit
+                    .achievementRate
+                )}`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-text/70">
+                    営業利益
+                  </span>
+                  <Target className="h-4 w-4 text-info" />
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div>
+                    <p className="text-text/60">目標</p>
+                    <p className="font-semibold">
+                      {formatCurrency(
+                        selectedUser.performance.lastMonth.operatingProfit
+                          .target
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-text/60">実績</p>
+                    <p className="font-semibold">
+                      {formatCurrency(
+                        selectedUser.performance.lastMonth.operatingProfit
+                          .actual
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-text/60">達成率</p>
+                    <p
+                      className={`font-bold ${getPerformanceColor(
+                        selectedUser.performance.lastMonth.operatingProfit
+                          .achievementRate
+                      )}`}
+                    >
+                      {formatPercentage(
+                        selectedUser.performance.lastMonth.operatingProfit
+                          .achievementRate
                       )}
                     </p>
                   </div>
@@ -643,148 +1286,148 @@ const TaxAccountantDashboard: React.FC = () => {
           <div className="card">
             <h3 className="text-lg font-semibold text-text mb-4 flex items-center space-x-2">
               <BarChart3 className="h-5 w-5 text-accent" />
-              <span>今月実績</span>
+              <span>{`${formatYearMonth(currentMonthDate)}実績`}</span>
             </h3>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               {/* 売上 */}
               <div
-                className={`p-4 rounded-lg border ${getPerformanceBgColor(
-                  selectedUser.currentMonthSalesAchievementRate
+                className={`p-3 rounded-lg border ${getPerformanceBgColor(
+                  selectedUser.performance.currentMonth.sales.achievementRate
                 )}`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-text/70">売上</span>
                   <DollarSign className="h-4 w-4 text-primary" />
                 </div>
-                <div className="grid grid-cols-3 gap-4 text-sm">
+                <div className="grid grid-cols-3 gap-2 text-sm">
                   <div>
                     <p className="text-text/60">目標</p>
                     <p className="font-semibold">
-                      {formatCurrency(selectedUser.currentMonthSalesTarget)}
+                      {formatCurrency(
+                        selectedUser.performance.currentMonth.sales.target
+                      )}
                     </p>
                   </div>
                   <div>
                     <p className="text-text/60">実績</p>
                     <p className="font-semibold">
-                      {formatCurrency(selectedUser.currentMonthSalesActual)}
+                      {formatCurrency(
+                        selectedUser.performance.currentMonth.sales.actual
+                      )}
                     </p>
                   </div>
                   <div>
                     <p className="text-text/60">達成率</p>
                     <p
                       className={`font-bold ${getPerformanceColor(
-                        selectedUser.currentMonthSalesAchievementRate
+                        selectedUser.performance.currentMonth.sales
+                          .achievementRate
                       )}`}
                     >
                       {formatPercentage(
-                        selectedUser.currentMonthSalesAchievementRate
+                        selectedUser.performance.currentMonth.sales
+                          .achievementRate
                       )}
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* 利益 */}
+              {/* 粗利益 */}
               <div
-                className={`p-4 rounded-lg border ${getPerformanceBgColor(
-                  selectedUser.currentMonthProfitAchievementRate
+                className={`p-3 rounded-lg border ${getPerformanceBgColor(
+                  selectedUser.performance.currentMonth.grossProfit
+                    .achievementRate
                 )}`}
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-text/70">利益</span>
+                  <span className="text-sm font-medium text-text/70">
+                    粗利益
+                  </span>
                   <Target className="h-4 w-4 text-success" />
                 </div>
-                <div className="grid grid-cols-3 gap-4 text-sm">
+                <div className="grid grid-cols-3 gap-2 text-sm">
                   <div>
                     <p className="text-text/60">目標</p>
                     <p className="font-semibold">
-                      {formatCurrency(selectedUser.currentMonthProfitTarget)}
+                      {formatCurrency(
+                        selectedUser.performance.currentMonth.grossProfit.target
+                      )}
                     </p>
                   </div>
                   <div>
                     <p className="text-text/60">実績</p>
                     <p className="font-semibold">
-                      {formatCurrency(selectedUser.currentMonthProfitActual)}
+                      {formatCurrency(
+                        selectedUser.performance.currentMonth.grossProfit.actual
+                      )}
                     </p>
                   </div>
                   <div>
                     <p className="text-text/60">達成率</p>
                     <p
                       className={`font-bold ${getPerformanceColor(
-                        selectedUser.currentMonthProfitAchievementRate
+                        selectedUser.performance.currentMonth.grossProfit
+                          .achievementRate
                       )}`}
                     >
                       {formatPercentage(
-                        selectedUser.currentMonthProfitAchievementRate
+                        selectedUser.performance.currentMonth.grossProfit
+                          .achievementRate
                       )}
                     </p>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
 
-        {/* 比較データ */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="card">
-            <h3 className="text-lg font-semibold text-text mb-4 flex items-center space-x-2">
-              <PieChart className="h-5 w-5 text-warning" />
-              <span>前年同月比</span>
-            </h3>
-            <div className="text-center">
-              <p
-                className={`text-3xl font-bold ${
-                  selectedUser.yearOverYearComparison >= 100
-                    ? "text-green-600"
-                    : "text-red-600"
-                }`}
-              >
-                {formatPercentage(selectedUser.yearOverYearComparison)}
-                <span className="text-sm text-text/70 ml-1">前月比</span>
-              </p>
-              <p className="text-sm text-text/70 mt-1 flex items-center justify-center">
-                {selectedUser.yearOverYearComparison >= 100 ? "成長" : "減少"}
-                {selectedUser.yearOverYearComparison >= 100 ? (
-                  <TrendingUp className="h-5 w-5 text-green-600 ml-2" />
-                ) : (
-                  <TrendingDown className="h-5 w-5 text-red-600 ml-2" />
-                )}
-              </p>
-            </div>
-          </div>
-
-          <div className="card">
-            <h3 className="text-lg font-semibold text-text mb-4 flex items-center space-x-2">
-              <Calculator className="h-5 w-5 text-info" />
-              <span>累計達成率</span>
-            </h3>
-            <div className="text-center">
-              <p
-                className={`text-3xl font-bold ${getPerformanceColor(
-                  selectedUser.cumulativeAchievementRate
+              {/* 営業利益 */}
+              <div
+                className={`p-3 rounded-lg border ${getPerformanceBgColor(
+                  selectedUser.performance.currentMonth.operatingProfit
+                    .achievementRate
                 )}`}
               >
-                {formatPercentage(selectedUser.cumulativeAchievementRate)}
-              </p>
-              <p className="text-sm text-text/70 mt-1">年間目標に対する進捗</p>
-              <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
-                <div
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    selectedUser.cumulativeAchievementRate >= 100
-                      ? "bg-green-500"
-                      : selectedUser.cumulativeAchievementRate >= 80
-                      ? "bg-yellow-500"
-                      : "bg-red-500"
-                  }`}
-                  style={{
-                    width: `${Math.min(
-                      selectedUser.cumulativeAchievementRate,
-                      100
-                    )}%`,
-                  }}
-                />
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-text/70">
+                    営業利益
+                  </span>
+                  <Target className="h-4 w-4 text-info" />
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div>
+                    <p className="text-text/60">目標</p>
+                    <p className="font-semibold">
+                      {formatCurrency(
+                        selectedUser.performance.currentMonth.operatingProfit
+                          .target
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-text/60">実績</p>
+                    <p className="font-semibold">
+                      {formatCurrency(
+                        selectedUser.performance.currentMonth.operatingProfit
+                          .actual
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-text/60">達成率</p>
+                    <p
+                      className={`font-bold ${getPerformanceColor(
+                        selectedUser.performance.currentMonth.operatingProfit
+                          .achievementRate
+                      )}`}
+                    >
+                      {formatPercentage(
+                        selectedUser.performance.currentMonth.operatingProfit
+                          .achievementRate
+                      )}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -979,6 +1622,150 @@ const TaxAccountantDashboard: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* ナビゲーション編集セクション */}
+        <div className="card">
+          <h3 className="text-lg font-semibold text-text mb-4 flex items-center space-x-2">
+            <Map className="h-5 w-5 text-primary" />
+            <span>ナビゲーション編集</span>
+          </h3>
+          <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
+            {editableRoadmap.map((yearData) => (
+              <div key={yearData.year} className="border rounded-lg">
+                <button
+                  onClick={() =>
+                    setOpenYear(
+                      openYear === yearData.year ? null : yearData.year
+                    )
+                  }
+                  className="w-full text-left p-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors"
+                >
+                  <span className="font-semibold">{yearData.year}年度</span>
+                  {openYear === yearData.year ? (
+                    <ChevronUp className="h-5 w-5" />
+                  ) : (
+                    <ChevronDown className="h-5 w-5" />
+                  )}
+                </button>
+                {openYear === yearData.year && (
+                  <div className="p-4 border-t space-y-4">
+                    {Object.entries(yearData.quarters).map(
+                      ([q, advice]: [string, RoadmapAdvice]) => {
+                        const quarter = parseInt(q);
+                        return (
+                          <div
+                            key={quarter}
+                            className="mb-4 p-4 border rounded-md bg-white shadow-sm"
+                          >
+                            <h4 className="font-bold text-primary mb-3">
+                              第{quarter}四半期
+                            </h4>
+                            <div className="space-y-3">
+                              <div>
+                                <label className="block text-sm font-medium text-text/70 mb-1">
+                                  タイトル
+                                </label>
+                                <input
+                                  type="text"
+                                  value={advice.title}
+                                  onChange={(e) =>
+                                    handleRoadmapChange(
+                                      yearData.year,
+                                      quarter,
+                                      "title",
+                                      e.target.value
+                                    )
+                                  }
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-text/70 mb-1">
+                                  アドバイス
+                                </label>
+                                <textarea
+                                  value={advice.advice}
+                                  onChange={(e) =>
+                                    handleRoadmapChange(
+                                      yearData.year,
+                                      quarter,
+                                      "advice",
+                                      e.target.value
+                                    )
+                                  }
+                                  rows={2}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-y"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-text/70 mb-1">
+                                  詳細タスク
+                                </label>
+                                <div className="space-y-2">
+                                  {advice.details.map(
+                                    (detail: string, index: number) => (
+                                      <div
+                                        key={index}
+                                        className="flex items-center space-x-2"
+                                      >
+                                        <input
+                                          type="text"
+                                          value={detail}
+                                          onChange={(e) =>
+                                            handleDetailChange(
+                                              yearData.year,
+                                              quarter,
+                                              index,
+                                              e.target.value
+                                            )
+                                          }
+                                          className="flex-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                        />
+                                        <button
+                                          onClick={() =>
+                                            removeDetail(
+                                              yearData.year,
+                                              quarter,
+                                              index
+                                            )
+                                          }
+                                          className="text-red-500 hover:text-red-700 transition-colors"
+                                        >
+                                          <XCircle className="h-5 w-5" />
+                                        </button>
+                                      </div>
+                                    )
+                                  )}
+                                  <button
+                                    onClick={() =>
+                                      addDetail(yearData.year, quarter)
+                                    }
+                                    className="flex items-center space-x-2 text-sm text-primary hover:text-primary/80 transition-colors"
+                                  >
+                                    <PlusCircle className="h-4 w-4" />
+                                    <span>タスクを追加</span>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end mt-4">
+            <button
+              onClick={handleSaveRoadmap}
+              className="px-6 py-2 text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              ナビゲーションを保存
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -991,18 +1778,20 @@ const TaxAccountantDashboard: React.FC = () => {
         <h1 className="text-2xl sm:text-3xl font-bold text-text">
           クライアント管理 (デモモード)
         </h1>
-        <div className="text-sm text-text/70">
-          登録ユーザー数: {users.length}名
-          {isLoading && <span className="ml-2">(読み込み中...)</span>}
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setIsAddUserModalOpen(true)}
+            className="flex items-center px-4 py-2 text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            ユーザー追加
+          </button>
+          <div className="text-sm text-text/70">
+            登録ユーザー数: {users.length}名
+            {isLoading && <span className="ml-2">(読み込み中...)</span>}
+          </div>
         </div>
       </div>
-
-      {/* エラー表示 */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
-          <p>{error}</p>
-        </div>
-      )}
 
       {/* ローディング表示 */}
       {isLoading ? (
@@ -1027,16 +1816,7 @@ const TaxAccountantDashboard: React.FC = () => {
               </div>
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-text/70">並び順:</span>
-                <select
-                  value={sortBy}
-                  onChange={(e) =>
-                    setSortBy(e.target.value as "name" | "performance")
-                  }
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  <option value="name">名前順</option>
-                  <option value="performance">達成率順</option>
-                </select>
+                <span>名前順</span>
               </div>
             </div>
           </div>
@@ -1069,53 +1849,24 @@ const TaxAccountantDashboard: React.FC = () => {
                       <p className="text-sm text-text/70">
                         {user.businessName}
                       </p>
+                      <p className="text-sm text-text/70">
+                        {user.hasComment && (
+                          <div className="flex items-center space-x-1 text-green-600">
+                            <CheckCircle className="h-4 w-4" />
+                            <span className="text-xs font-medium">
+                              コメント済み
+                            </span>
+                          </div>
+                        )}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    {user.hasComment && (
-                      <div className="flex items-center space-x-1 text-green-600">
-                        <CheckCircle className="h-4 w-4" />
-                        <span className="text-xs font-medium">
-                          コメント済み
-                        </span>
-                      </div>
-                    )}
                     <ChevronRight className="h-5 w-5 text-text/40" />
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-text/70">累計達成率</span>
-                    <span
-                      className={`font-bold ${getPerformanceColor(
-                        user.cumulativeAchievementRate
-                      )}`}
-                    >
-                      {formatPercentage(user.cumulativeAchievementRate)}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-text/70">前年同月比</span>
-                    <div className="flex items-center space-x-1">
-                      {user.yearOverYearComparison >= 100 ? (
-                        <TrendingUp className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <TrendingDown className="h-4 w-4 text-red-600" />
-                      )}
-                      <span
-                        className={`font-bold ${
-                          user.yearOverYearComparison >= 100
-                            ? "text-green-600"
-                            : "text-red-600"
-                        }`}
-                      >
-                        {formatPercentage(user.yearOverYearComparison)}
-                      </span>
-                    </div>
-                  </div>
-
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-text/70">決算月</span>
                     <span className="text-sm font-medium text-primary">
@@ -1133,24 +1884,6 @@ const TaxAccountantDashboard: React.FC = () => {
                       </span>
                     </div>
                   )}
-
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        user.cumulativeAchievementRate >= 100
-                          ? "bg-green-500"
-                          : user.cumulativeAchievementRate >= 80
-                          ? "bg-yellow-500"
-                          : "bg-red-500"
-                      }`}
-                      style={{
-                        width: `${Math.min(
-                          user.cumulativeAchievementRate,
-                          100
-                        )}%`,
-                      }}
-                    />
-                  </div>
                 </div>
               </div>
             ))}
@@ -1165,6 +1898,176 @@ const TaxAccountantDashboard: React.FC = () => {
             </div>
           )}
         </>
+      )}
+
+      {/* 新規ユーザー追加モーダル */}
+      {isAddUserModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 sm:p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-6">新規ユーザー追加</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  メールアドレス *
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={newUser.email}
+                  onChange={handleNewUserChange}
+                  autoComplete="off"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  パスワード *
+                </label>
+                <input
+                  type="text"
+                  name="password"
+                  value={newUser.password}
+                  onChange={handleNewUserChange}
+                  autoComplete="off"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+
+              {/* User Name */}
+              <div>
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  ユーザー名 *
+                </label>
+                <input
+                  type="text"
+                  name="userName"
+                  value={newUser.userName}
+                  onChange={handleNewUserChange}
+                  autoComplete="off"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+
+              {/* Company Name */}
+              <div>
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  会社名 *
+                </label>
+                <input
+                  type="text"
+                  name="businessName"
+                  value={newUser.businessName}
+                  onChange={handleNewUserChange}
+                  autoComplete="off"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+
+              {/* Capital */}
+              <div>
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  資本金 (円)
+                </label>
+                <input
+                  type="number"
+                  name="capital"
+                  value={newUser.capital}
+                  onChange={handleNewUserChange}
+                  autoComplete="off"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+
+              {/* Company Size */}
+              <div>
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  会社規模
+                </label>
+                <select
+                  name="companySize"
+                  value={newUser.companySize}
+                  onChange={handleNewUserChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option>1-5人</option>
+                  <option>6-20人</option>
+                  <option>21-50人</option>
+                  <option>51人以上</option>
+                </select>
+              </div>
+
+              {/* Industry */}
+              <div>
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  業界
+                </label>
+                <select
+                  name="industry"
+                  value={newUser.industry}
+                  onChange={handleNewUserChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  {industryOptions.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Business Start Date */}
+              <div>
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  事業開始年月
+                </label>
+                <input
+                  type="month"
+                  name="businessStartDate"
+                  value={newUser.businessStartDate}
+                  onChange={handleNewUserChange}
+                  autoComplete="off"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+              </div>
+
+              {/* Knowledge Level */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  財務・会計の知識レベル
+                </label>
+                <select
+                  name="knowledgeLevel"
+                  value={newUser.knowledgeLevel}
+                  onChange={handleNewUserChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option>初心者</option>
+                  <option>中級者</option>
+                  <option>上級者</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-4 mt-8">
+              <button
+                onClick={() => setIsAddUserModalOpen(false)}
+                className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={handleAddNewUser}
+                className="px-4 py-2 text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                追加
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

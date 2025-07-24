@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Home,
   Map,
@@ -23,6 +23,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const { logout } = useAuth();
 
   const getCookie = (name: string): string | null => {
@@ -46,19 +47,38 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     }
   }, []);
 
+  useEffect(() => {
+    // role="1"の場合、クライアント管理画面と設定画面以外にはアクセスできない
+    if (
+      userRole === "1" &&
+      location.pathname !== "/taxAccountant" &&
+      location.pathname !== "/settings"
+    ) {
+      navigate("/taxAccountant", { replace: true });
+    }
+  }, [userRole, location.pathname, navigate]);
+
   const navigation = [
-    { name: "ダッシュボード", href: "/", icon: Home, disabled: false },
+    {
+      name: "ダッシュボード",
+      href: "/",
+      icon: Home,
+      disabled: false,
+      roleRequired: "0",
+    },
     {
       name: "予実管理",
       href: "/budgetActual",
       icon: BarChart3,
       disabled: false,
+      roleRequired: "0",
     },
     {
       name: "10年目標設定",
       href: "/roadmap",
       icon: Map,
       disabled: false,
+      roleRequired: "0",
     },
     {
       name: "クライアント管理",
@@ -72,12 +92,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       href: "/ranking",
       icon: Trophy,
       disabled: true,
+      roleRequired: "0",
     },
     {
       name: "相談・サポート",
       href: "/support",
       icon: MessageCircle,
       disabled: true,
+      roleRequired: "0",
     },
   ];
 

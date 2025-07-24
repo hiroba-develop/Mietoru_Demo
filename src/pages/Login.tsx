@@ -31,10 +31,7 @@ const Login: React.FC = () => {
   const { user, isLoading, login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [isLoginMode, setIsLoginMode] = useState(true);
-  const [showTooltip, setShowTooltip] = useState(false);
 
   // すでにログイン済みの場合はリダイレクト
   if (user && !isLoading) {
@@ -45,49 +42,30 @@ const Login: React.FC = () => {
     e.preventDefault();
     setError("");
 
-    // 新規登録の場合はパスワード確認をチェック
-    if (!isLoginMode) {
-      if (password !== confirmPassword) {
-        setError("パスワードが一致しません");
-        return;
-      }
-    }
-
     try {
-      if (isLoginMode) {
-        // デモ用の遅延
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+      // デモ用の遅延
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        // デモユーザーをチェック
-        const demoUser = DEMO_USERS.find(
-          (user) => user.email === email && user.password === password
+      // デモユーザーをチェック
+      const demoUser = DEMO_USERS.find(
+        (user) => user.email === email && user.password === password
+      );
+
+      if (demoUser) {
+        await login(
+          email,
+          password,
+          demoUser.userId,
+          demoUser.settingFlg,
+          demoUser.role
         );
-
-        if (demoUser) {
-          await login(
-            email,
-            password,
-            demoUser.userId,
-            demoUser.settingFlg,
-            demoUser.role
-          );
-        } else {
-          // 指定されたデモユーザー以外はログイン不可
-          throw new Error("メールアドレスまたはパスワードが正しくありません");
-        }
       } else {
-        // デモモードでは新規登録は無効
-        throw new Error("デモモードでは新規登録はご利用いただけません");
+        // 指定されたデモユーザー以外はログイン不可
+        throw new Error("メールアドレスまたはパスワードが正しくありません");
       }
     } catch (err) {
       console.error("デモ認証エラー:", err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : isLoginMode
-          ? "ログインに失敗しました"
-          : "新規登録に失敗しました"
-      );
+      setError(err instanceof Error ? err.message : "ログインに失敗しました");
     }
   };
 
@@ -135,70 +113,6 @@ const Login: React.FC = () => {
         {/* ログインフォーム */}
         <div className="bg-white rounded-lg shadow-xl p-8">
           <div className="space-y-6">
-            {/* タブ切り替え */}
-            <div className="flex rounded-lg bg-gray-100 p-1">
-              <button
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                  isLoginMode
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-                onClick={() => {
-                  setIsLoginMode(true);
-                  setError("");
-                }}
-              >
-                ログイン
-              </button>
-              <button
-                className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-                  !isLoginMode
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-                onClick={() => {
-                  setIsLoginMode(false);
-                  setError("");
-                }}
-              >
-                新規登録
-              </button>
-            </div>
-
-            {/* Google認証ボタン */}
-            <div className="flex justify-center relative">
-              <button
-                className="flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md bg-white text-gray-700 hover:bg-gray-50 opacity-60 cursor-not-allowed"
-                onMouseEnter={() => setShowTooltip(true)}
-                onMouseLeave={() => setShowTooltip(false)}
-                onClick={(e) => e.preventDefault()}
-                aria-disabled="true"
-              >
-                <img
-                  src="https://developers.google.com/identity/images/g-logo.png"
-                  alt="Google"
-                  className="w-5 h-5 mr-2"
-                />
-                <span>{isLoginMode ? "Googleでログイン" : "Googleで登録"}</span>
-              </button>
-              {showTooltip && (
-                <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-3 py-2 rounded whitespace-nowrap z-50 pointer-events-none">
-                  デモ版では使用不可です
-                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 rotate-45 w-2 h-2 bg-gray-800"></div>
-                </div>
-              )}
-            </div>
-
-            {/* 区切り線 */}
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">または</span>
-              </div>
-            </div>
-
             {/* エラーメッセージ */}
             {error && (
               <div className="text-center text-sm text-red-500">{error}</div>
@@ -237,9 +151,7 @@ const Login: React.FC = () => {
                   id="password"
                   name="password"
                   type="password"
-                  autoComplete={
-                    isLoginMode ? "current-password" : "new-password"
-                  }
+                  autoComplete="current-password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -248,42 +160,13 @@ const Login: React.FC = () => {
                 />
               </div>
 
-              {/* パスワード確認用（新規登録の場合のみ表示） */}
-              {!isLoginMode && (
-                <div>
-                  <label
-                    htmlFor="confirmPassword"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    パスワード（確認用）
-                  </label>
-                  <input
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
-                    placeholder="パスワードを再入力"
-                  />
-                </div>
-              )}
-
               <div>
                 <button
                   type="submit"
                   disabled={isLoading}
                   className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
                 >
-                  {isLoading
-                    ? isLoginMode
-                      ? "ログイン中..."
-                      : "新規登録中..."
-                    : isLoginMode
-                    ? "ログイン"
-                    : "新規登録"}
+                  {isLoading ? "ログイン中..." : "ログイン"}
                 </button>
               </div>
             </form>
