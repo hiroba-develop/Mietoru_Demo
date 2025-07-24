@@ -446,7 +446,9 @@ const Dashboard: React.FC = () => {
   // KPIデータ（デモデータから取得）
   const kpiData = [
     {
-      title: `今月の売上`,
+      title: `${currentYear}年${currentMonthNumber
+        .toString()
+        .padStart(2, "0")}月の売上`,
       value: `${currentMonthData.saleResult.toLocaleString()}円`,
       change: calculateMonthlyChange(
         currentMonthData.saleResult,
@@ -462,7 +464,9 @@ const Dashboard: React.FC = () => {
           : "text-red-500",
     },
     {
-      title: "今月の粗利益",
+      title: `${currentYear}年${currentMonthNumber
+        .toString()
+        .padStart(2, "0")}月の粗利益`,
       value: `${currentMonthData.profitResult.toLocaleString()}円`,
       change: calculateMonthlyChange(
         currentMonthData.profitResult,
@@ -478,7 +482,9 @@ const Dashboard: React.FC = () => {
           : "text-red-500",
     },
     {
-      title: "今月の営業利益",
+      title: `${currentYear}年${currentMonthNumber
+        .toString()
+        .padStart(2, "0")}月の営業利益`,
       value: `${currentMonthData.profitResult.toLocaleString()}円`,
       change: calculateMonthlyChange(
         currentMonthData.profitResult,
@@ -494,7 +500,9 @@ const Dashboard: React.FC = () => {
           : "text-red-500",
     },
     {
-      title: "今月の営業利益達成率",
+      title: `${currentYear}年${currentMonthNumber
+        .toString()
+        .padStart(2, "0")}月の営業利益達成率`,
       value: `${profitAchievementRate.toFixed(1)}%`,
       change: calculateMonthlyChange(
         profitAchievementRate,
@@ -621,11 +629,11 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* 今月のワンポイントアドバイス */}
-      <div className="card bg-blue/5 border-blue/20">
+      <div className="card bg-blue-50 border-blue-200">
         <div className="flex items-start space-x-3">
-          <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+          <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 mt-0.5 flex-shrink-0" />
           <div>
-            <h3 className="text-base sm:text-lg font-semibold text-text">
+            <h3 className="text-base sm:text-lg font-semibold text-blue-800">
               今月のワンポイントアドバイス
             </h3>
             <p className="text-xs sm:text-sm text-text/70 mt-1">
