@@ -27,11 +27,12 @@ interface Profit {
   profitResult: number;
 }
 
-interface NetAsset {
+interface OperatingProfit {
   userId: string;
   year: number;
-  netAssetTarget: number;
-  netAssetResult: number;
+  month: number;
+  operatingProfitTarget: number;
+  operatingProfitResult: number;
 }
 
 interface MonthlyData {
@@ -41,6 +42,8 @@ interface MonthlyData {
   actual: number;
   profit: number;
   profitTarget: number;
+  operatingProfit: number;
+  operatingProfitTarget: number;
 }
 
 // デモ用のユーザー設定
@@ -1445,55 +1448,21 @@ const demoProfits: Profit[] = [
   },
 ];
 
-// デモ用の純利益データ（10年分）
-const demoNetAssets: NetAsset[] = [
-  {
-    userId: "demo",
-    year: 2020,
-    netAssetTarget: 5000000,
-    netAssetResult: 5200000,
-  },
-  {
-    userId: "demo",
-    year: 2021,
-    netAssetTarget: 5500000,
-    netAssetResult: 5800000,
-  },
-  {
-    userId: "demo",
-    year: 2022,
-    netAssetTarget: 6000000,
-    netAssetResult: 6300000,
-  },
-  {
-    userId: "demo",
-    year: 2023,
-    netAssetTarget: 8000000,
-    netAssetResult: 8200000,
-  },
-  {
-    userId: "demo",
-    year: 2024,
-    netAssetTarget: 9000000,
-    netAssetResult: 9100000,
-  },
-  {
-    userId: "demo",
-    year: 2025,
-    netAssetTarget: 10000000,
-    netAssetResult: 9500000,
-  },
-  { userId: "demo", year: 2026, netAssetTarget: 11000000, netAssetResult: 0 },
-  { userId: "demo", year: 2027, netAssetTarget: 12000000, netAssetResult: 0 },
-  { userId: "demo", year: 2028, netAssetTarget: 13000000, netAssetResult: 0 },
-  { userId: "demo", year: 2029, netAssetTarget: 14000000, netAssetResult: 0 },
-];
+// デモ用の営業利益データ（10年分） - 粗利益の80%と仮定
+const demoOperatingProfits: OperatingProfit[] = demoProfits.map((profit) => ({
+  userId: profit.userId,
+  year: profit.year,
+  month: profit.month,
+  operatingProfitTarget: Math.round(profit.profitTarget * 0.8),
+  operatingProfitResult: Math.round(profit.profitResult * 0.8),
+}));
 
 const BudgetActual: React.FC = () => {
   // デモデータを状態として管理
   const [sales, setSales] = useState<Sale[]>(demoSales);
   const [profits, setProfits] = useState<Profit[]>(demoProfits);
-  const [netAssets, setNetAssets] = useState<NetAsset[]>(demoNetAssets);
+  const [operatingProfits, setOperatingProfits] =
+    useState<OperatingProfit[]>(demoOperatingProfits);
   const [userSettings] = useState(demoUserSetup);
 
   // 事業年度開始年月（デモデータから取得）
@@ -1509,132 +1478,30 @@ const BudgetActual: React.FC = () => {
       ? currentCalendarYear
       : currentCalendarYear - 1;
 
-  const [selectedYear, setSelectedYear] = useState(currentFiscalYear);
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
-
   // グラフ用の年と期間を別に管理
   const [graphYear, setGraphYear] = useState(currentFiscalYear);
   const [viewPeriod, setViewPeriod] = useState<"12" | "6H1" | "6H2">("12");
 
-  // 年が変更されたときに、選択可能な月の範囲内で月を調整
-  const handleYearChange = (newYear: number) => {
-    setSelectedYear(newYear);
-    const availableMonths = getAvailableMonthsForYear(newYear);
-    if (
-      availableMonths.length > 0 &&
-      !availableMonths.includes(selectedMonth)
-    ) {
-      setSelectedMonth(availableMonths[0]);
-    }
-  };
-
-  const [actualRevenue, setActualRevenue] = useState(0);
-  const [actualProfit, setActualProfit] = useState(0);
-  const [actualNetIncome, setActualNetIncome] = useState(0);
-  const [selectedPeriodYear, setSelectedPeriodYear] =
-    useState(currentFiscalYear);
-  const [activeChart, setActiveChart] = useState<"revenue" | "profit">(
-    "revenue"
-  );
+  const [activeChart, setActiveChart] = useState<
+    "revenue" | "profit" | "operatingProfit"
+  >("revenue");
   const [editingCell, setEditingCell] = useState<string | null>(null);
-
-  // 編集された項目を追跡する状態を追加
-  const [editedItems, setEditedItems] = useState<Set<string>>(new Set());
 
   // 詳細比較表用の独立した状態
   const [tableYear, setTableYear] = useState(currentFiscalYear);
-  const [tableViewPeriod, setTableViewPeriod] = useState<"12" | "6H1" | "6H2">(
-    "12"
+  const [tableViewPeriod, setTableViewPeriod] = useState<"6H1" | "6H2">("6H1");
+
+  const [pendingEdits, setPendingEdits] = useState<{ [key: string]: number }>(
+    {}
   );
 
-  // 今月の売上・利益データを取得
-  const getCurrentMonthSale = () => {
-    return sales.find(
-      (sale) => sale.year === currentCalendarYear && sale.month === currentMonth
-    );
-  };
-
-  const getCurrentMonthProfit = () => {
-    return profits.find(
-      (profit) =>
-        profit.year === currentCalendarYear && profit.month === currentMonth
-    );
-  };
-
-  // 昨年同月の利益データを取得
-  const getLastYearSameMonthProfit = () => {
-    return profits.find(
-      (profit) =>
-        profit.year === currentCalendarYear - 1 && profit.month === currentMonth
-    );
-  };
-
-  // KPIデータを計算
-  const calculateKPIData = () => {
-    const currentSale = getCurrentMonthSale();
-    const currentProfit = getCurrentMonthProfit();
-    const lastYearProfit = getLastYearSameMonthProfit();
-
-    // 売上達成率
-    const revenueAchievementRate =
-      currentSale?.saleTarget && currentSale.saleTarget > 0
-        ? (
-            ((currentSale.saleResult || 0) / currentSale.saleTarget) *
-            100
-          ).toFixed(1)
-        : "0.0";
-
-    // 利益達成率
-    const profitAchievementRate =
-      currentProfit?.profitTarget && currentProfit.profitTarget > 0
-        ? (
-            ((currentProfit.profitResult || 0) / currentProfit.profitTarget) *
-            100
-          ).toFixed(1)
-        : "0.0";
-
-    // 前年同月比
-    const yearOverYearRate =
-      lastYearProfit?.profitResult && lastYearProfit.profitResult > 0
-        ? (
-            ((currentProfit?.profitResult || 0) / lastYearProfit.profitResult) *
-            100
-          ).toFixed(1)
-        : "0.0";
-
-    return [
-      {
-        title: "売上達成率",
-        value: `${revenueAchievementRate}%`,
-        status:
-          Number(revenueAchievementRate) >= 100
-            ? "success"
-            : Number(revenueAchievementRate) >= 90
-            ? "warning"
-            : "error",
-      },
-      {
-        title: "利益達成率",
-        value: `${profitAchievementRate}%`,
-        status:
-          Number(profitAchievementRate) >= 100
-            ? "success"
-            : Number(profitAchievementRate) >= 90
-            ? "warning"
-            : "error",
-      },
-      {
-        title: "前年同月比(利益)",
-        value: `${yearOverYearRate}%`,
-        status:
-          Number(yearOverYearRate) >= 100
-            ? "success"
-            : Number(yearOverYearRate) >= 90
-            ? "warning"
-            : "error",
-      },
-    ];
-  };
+  type EditableField =
+    | "target"
+    | "actual"
+    | "profitTarget"
+    | "profit"
+    | "operatingProfitTarget"
+    | "operatingProfit";
 
   // 月次データを動的に生成する関数（デモデータベース）
   const generateMonthlyDataFromDemo = useCallback(
@@ -1674,6 +1541,10 @@ const BudgetActual: React.FC = () => {
         const profitData = profits.find(
           (profit) => profit.year === actualYear && profit.month === month
         );
+        // 該当年月の営業利益データを取得
+        const operatingProfitData = operatingProfits.find(
+          (op) => op.year === actualYear && op.month === month
+        );
 
         months.push({
           id: i,
@@ -1682,11 +1553,14 @@ const BudgetActual: React.FC = () => {
           actual: saleData?.saleResult || 0,
           profit: profitData?.profitResult || 0,
           profitTarget: profitData?.profitTarget || 0,
+          operatingProfit: operatingProfitData?.operatingProfitResult || 0,
+          operatingProfitTarget:
+            operatingProfitData?.operatingProfitTarget || 0,
         });
       }
       return months;
     },
-    [fiscalYearStart, sales, profits]
+    [fiscalYearStart, sales, profits, operatingProfits]
   );
 
   // 事業年度表示用の関数
@@ -1715,67 +1589,18 @@ const BudgetActual: React.FC = () => {
     return years;
   }, [fiscalYearStartYear]);
 
-  // 月次実績入力で選択可能な年月を計算
-  const getAvailableYearsForInput = useCallback(() => {
-    const startYear = fiscalYearStartYear;
-    const years = [];
-
-    // 事業年度開始年から10年分（未来も含む）
-    for (let year = startYear; year < startYear + 10; year++) {
-      years.push(year);
-    }
-
-    // 年が一つも選択できない場合は、現在の年を追加
-    if (years.length === 0) {
-      years.push(currentCalendarYear);
-    }
-
-    return years;
-  }, [fiscalYearStartYear, currentCalendarYear]);
-
-  // 指定した年で選択可能な月を計算
-  const getAvailableMonthsForYear = useCallback(
-    (year: number) => {
-      const startYear = fiscalYearStartYear;
-      const startMonth = fiscalYearStart;
-      const endYear = startYear + 9; // 10年分なので開始年+9年まで
-
-      const months = [];
-
-      if (year === startYear) {
-        // 事業年度開始年の場合、開始月から12月まで
-        for (let month = startMonth; month <= 12; month++) {
-          months.push(month);
-        }
-      } else if (year === endYear) {
-        // 最終年の場合、1月から事業年度終了月まで
-        const endMonth = startMonth - 1 === 0 ? 12 : startMonth - 1;
-        for (let month = 1; month <= endMonth; month++) {
-          months.push(month);
-        }
-      } else if (year > startYear && year < endYear) {
-        // 中間年の場合、1月から12月まで
-        for (let month = 1; month <= 12; month++) {
-          months.push(month);
-        }
-      }
-
-      // 月が一つも選択できない場合は、現在の月を追加
-      if (months.length === 0) {
-        months.push(currentMonth);
-      }
-
-      return months;
-    },
-    [fiscalYearStart, fiscalYearStartYear, currentMonth]
-  );
-
   // 詳細比較表用のデータも年度変更時に更新
   const [tableData, setTableData] = useState<MonthlyData[]>([]);
 
   useEffect(() => {
     setTableData(generateMonthlyDataFromDemo(tableYear));
-  }, [generateMonthlyDataFromDemo, tableYear, sales, profits]);
+  }, [
+    generateMonthlyDataFromDemo,
+    tableYear,
+    sales,
+    profits,
+    operatingProfits,
+  ]);
 
   // 表示期間に応じてデータをフィルタリング（グラフ用）
   const getDisplayData = () => {
@@ -1796,196 +1621,160 @@ const BudgetActual: React.FC = () => {
 
   // 詳細比較表用のデータフィルタリング
   const getTableDisplayData = () => {
-    switch (tableViewPeriod) {
-      case "12":
-        return tableData.slice(0, 12);
-      case "6H1":
-        return tableData.slice(0, 6);
-      case "6H2":
-        return tableData.slice(6, 12);
-      default:
-        return tableData.slice(0, 12);
+    if (tableViewPeriod === "6H1") {
+      return tableData.slice(0, 6);
+    } else {
+      return tableData.slice(6, 12);
     }
   };
 
   // セルの値を更新
   const handleCellUpdate = (
     id: number,
-    field: "target" | "profitTarget",
+    field: EditableField,
     value: number
   ) => {
-    setTableData((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))
-    );
+    const key = `${tableYear}-${id}-${field}`;
+    setPendingEdits((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
     setEditingCell(null);
-    // 編集された項目を追跡
-    setEditedItems((prev) => new Set([...prev, `${id}-${field}`]));
   };
 
   // セルのダブルクリック処理
-  const handleCellDoubleClick = (
-    id: number,
-    field: "target" | "profitTarget"
-  ) => {
-    setEditingCell(`${id}-${field}`);
-  };
-
-  const kpiData = calculateKPIData();
-
-  // デモ版の保存処理（ローカル状態のみ更新）
-  const handleManualSave = () => {
-    // 売上データの更新
-    setSales((prev) => {
-      const newSales = [...prev];
-      const existingIndex = newSales.findIndex(
-        (s) => s.year === selectedYear && s.month === selectedMonth
-      );
-
-      if (existingIndex >= 0) {
-        newSales[existingIndex] = {
-          ...newSales[existingIndex],
-          saleResult: actualRevenue,
-        };
-      } else {
-        newSales.push({
-          userId: "demo",
-          year: selectedYear,
-          month: selectedMonth,
-          saleResult: actualRevenue,
-          saleTarget: 0,
-        });
-      }
-      return newSales;
-    });
-
-    // 利益データの更新
-    setProfits((prev) => {
-      const newProfits = [...prev];
-      const existingIndex = newProfits.findIndex(
-        (p) => p.year === selectedYear && p.month === selectedMonth
-      );
-
-      if (existingIndex >= 0) {
-        newProfits[existingIndex] = {
-          ...newProfits[existingIndex],
-          profitResult: actualProfit,
-        };
-      } else {
-        newProfits.push({
-          userId: "demo",
-          year: selectedYear,
-          month: selectedMonth,
-          profitResult: actualProfit,
-          profitTarget: 0,
-        });
-      }
-      return newProfits;
-    });
-
-    alert("実績データを保存しました。（デモ版）");
-  };
-
-  // 純利益実績の保存（デモ版）
-  const handleNetIncomeSave = () => {
-    setNetAssets((prev) => {
-      const newNetAssets = [...prev];
-      const existingIndex = newNetAssets.findIndex(
-        (n) => n.year === selectedPeriodYear
-      );
-
-      if (existingIndex >= 0) {
-        newNetAssets[existingIndex] = {
-          ...newNetAssets[existingIndex],
-          netAssetResult: actualNetIncome,
-        };
-      } else {
-        newNetAssets.push({
-          userId: "demo",
-          year: selectedPeriodYear,
-          netAssetResult: actualNetIncome,
-          netAssetTarget: 0,
-        });
-      }
-      return newNetAssets;
-    });
-
-    alert("純利益実績を保存しました。（デモ版）");
+  const handleCellDoubleClick = (id: number, field: EditableField) => {
+    const key = `${tableYear}-${id}-${field}`;
+    setEditingCell(key);
   };
 
   // 編集された目標データの保存（デモ版）
-  const handleTargetSave = () => {
-    // 編集された項目を処理
-    editedItems.forEach((itemKey) => {
-      const [idStr, field] = itemKey.split("-");
-      const id = parseInt(idStr);
-      const dataItem = tableData.find((item) => item.id === id);
+  const handleTableSave = () => {
+    const newSales = [...sales];
+    const newProfits = [...profits];
+    const newOperatingProfits = [...operatingProfits];
 
-      if (!dataItem) return;
+    Object.entries(pendingEdits).forEach(([itemKey, value]) => {
+      const [yearStr, idStr, field] = itemKey.split("-");
+      const year = parseInt(yearStr, 10);
+      const id = parseInt(idStr, 10);
 
       // 月のインデックスから実際の月を計算
       const monthIndex = (fiscalYearStart - 1 + id) % 12;
       const month = monthIndex + 1;
 
       // 事業年度を考慮した実際の年を計算
-      let actualYear = tableYear;
+      let actualYear = year;
       if (month < fiscalYearStart) {
-        actualYear = tableYear + 1;
+        actualYear = year + 1;
       }
 
       if (field === "target") {
         // 売上目標の更新
-        setSales((prev) => {
-          const newSales = [...prev];
-          const existingIndex = newSales.findIndex(
-            (s) => s.year === actualYear && s.month === month
-          );
-
-          if (existingIndex >= 0) {
-            newSales[existingIndex] = {
-              ...newSales[existingIndex],
-              saleTarget: dataItem.target,
-            };
-          } else {
-            newSales.push({
-              userId: "demo",
-              year: actualYear,
-              month: month,
-              saleTarget: dataItem.target,
-              saleResult: 0,
-            });
-          }
-          return newSales;
-        });
+        const existingIndex = newSales.findIndex(
+          (s) => s.year === actualYear && s.month === month
+        );
+        if (existingIndex >= 0) {
+          newSales[existingIndex].saleTarget = value;
+        } else {
+          newSales.push({
+            userId: "demo",
+            year: actualYear,
+            month,
+            saleTarget: value,
+            saleResult: 0,
+          });
+        }
+      } else if (field === "actual") {
+        // 売上実績の更新
+        const existingIndex = newSales.findIndex(
+          (s) => s.year === actualYear && s.month === month
+        );
+        if (existingIndex >= 0) {
+          newSales[existingIndex].saleResult = value;
+        } else {
+          newSales.push({
+            userId: "demo",
+            year: actualYear,
+            month,
+            saleTarget: 0,
+            saleResult: value,
+          });
+        }
       } else if (field === "profitTarget") {
         // 利益目標の更新
-        setProfits((prev) => {
-          const newProfits = [...prev];
-          const existingIndex = newProfits.findIndex(
-            (p) => p.year === actualYear && p.month === month
-          );
-
-          if (existingIndex >= 0) {
-            newProfits[existingIndex] = {
-              ...newProfits[existingIndex],
-              profitTarget: dataItem.profitTarget,
-            };
-          } else {
-            newProfits.push({
-              userId: "demo",
-              year: actualYear,
-              month: month,
-              profitTarget: dataItem.profitTarget,
-              profitResult: 0,
-            });
-          }
-          return newProfits;
-        });
+        const existingIndex = newProfits.findIndex(
+          (p) => p.year === actualYear && p.month === month
+        );
+        if (existingIndex >= 0) {
+          newProfits[existingIndex].profitTarget = value;
+        } else {
+          newProfits.push({
+            userId: "demo",
+            year: actualYear,
+            month,
+            profitTarget: value,
+            profitResult: 0,
+          });
+        }
+      } else if (field === "profit") {
+        // 利益実績の更新
+        const existingIndex = newProfits.findIndex(
+          (p) => p.year === actualYear && p.month === month
+        );
+        if (existingIndex >= 0) {
+          newProfits[existingIndex].profitResult = value;
+        } else {
+          newProfits.push({
+            userId: "demo",
+            year: actualYear,
+            month,
+            profitTarget: 0,
+            profitResult: value,
+          });
+        }
+      } else if (field === "operatingProfitTarget") {
+        // 営業利益目標の更新
+        const existingIndex = newOperatingProfits.findIndex(
+          (op) => op.year === actualYear && op.month === month
+        );
+        if (existingIndex >= 0) {
+          newOperatingProfits[existingIndex].operatingProfitTarget = value;
+        } else {
+          newOperatingProfits.push({
+            userId: "demo",
+            year: actualYear,
+            month,
+            operatingProfitTarget: value,
+            operatingProfitResult: 0,
+          });
+        }
+      } else if (field === "operatingProfit") {
+        // 営業利益実績の更新
+        const existingIndex = newOperatingProfits.findIndex(
+          (op) => op.year === actualYear && op.month === month
+        );
+        if (existingIndex >= 0) {
+          newOperatingProfits[existingIndex].operatingProfitResult = value;
+        } else {
+          newOperatingProfits.push({
+            userId: "demo",
+            year: actualYear,
+            month,
+            operatingProfitTarget: 0,
+            operatingProfitResult: value,
+          });
+        }
       }
     });
 
+    setSales(newSales);
+    setProfits(newProfits);
+    setOperatingProfits(newOperatingProfits);
+
     // 編集状態をリセット
-    setEditedItems(new Set());
-    alert("目標データを保存しました。（デモ版）");
+    setPendingEdits({});
+    alert("データを保存しました。（デモ版）");
   };
 
   // CSV出力機能
@@ -2096,30 +1885,6 @@ const BudgetActual: React.FC = () => {
     }
   };
 
-  // 初期値を設定（現在月のデータがある場合）
-  useEffect(() => {
-    const currentSale = sales.find(
-      (sale) => sale.year === currentCalendarYear && sale.month === currentMonth
-    );
-    const currentProfit = profits.find(
-      (profit) =>
-        profit.year === currentCalendarYear && profit.month === currentMonth
-    );
-    const currentNetAsset = netAssets.find(
-      (asset) => asset.year === currentCalendarYear
-    );
-
-    if (currentSale && currentSale.saleResult !== undefined) {
-      setActualRevenue(currentSale.saleResult);
-    }
-    if (currentProfit && currentProfit.profitResult !== undefined) {
-      setActualProfit(currentProfit.profitResult);
-    }
-    if (currentNetAsset && currentNetAsset.netAssetResult !== undefined) {
-      setActualNetIncome(currentNetAsset.netAssetResult);
-    }
-  }, [sales, profits, netAssets, currentCalendarYear, currentMonth]);
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -2137,159 +1902,12 @@ const BudgetActual: React.FC = () => {
         </div>
       </div>
 
-      {/* KPI達成状況 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {kpiData.map((kpi, index) => (
-          <div key={index} className="card">
-            <div className="text-center">
-              <p className="text-sm text-text/70">{kpi.title}</p>
-              <p className="text-2xl font-bold text-text mt-1">{kpi.value}</p>
-              <div
-                className={`inline-flex px-2 py-1 rounded-full text-xs mt-2 ${
-                  kpi.status === "success"
-                    ? "bg-success/10 text-success"
-                    : kpi.status === "warning"
-                    ? "bg-warning/10 text-warning"
-                    : "bg-error/10 text-error"
-                }`}
-              >
-                {kpi.status === "success"
-                  ? "目標達成"
-                  : kpi.status === "warning"
-                  ? "要注意"
-                  : "未達成"}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* 実績入力フォーム - 2列配置 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* 月次実績入力フォーム */}
-        <div className="card">
-          <h3 className="text-base sm:text-lg font-semibold text-text mb-4">
-            月次実績入力
-          </h3>
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2">
-                <label className="block text-sm text-text/70 mb-1">年</label>
-                <select
-                  value={selectedYear}
-                  onChange={(e) => handleYearChange(Number(e.target.value))}
-                  className="input-field w-full"
-                >
-                  {getAvailableYearsForInput().map((year) => (
-                    <option key={year} value={year}>
-                      {year}年
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="col-span-1">
-                <label className="block text-sm text-text/70 mb-1">月</label>
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                  className="input-field w-full"
-                >
-                  {getAvailableMonthsForYear(selectedYear).map((month) => (
-                    <option key={month} value={month}>
-                      {month}月
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm text-text/70 mb-1">
-                売上（円）
-              </label>
-              <input
-                type="number"
-                value={actualRevenue}
-                onChange={(e) => setActualRevenue(Number(e.target.value))}
-                className="input-field w-full"
-                placeholder="実際の売上を入力"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-text/70 mb-1">
-                事業の利益（円）
-              </label>
-              <input
-                type="number"
-                value={actualProfit}
-                onChange={(e) => setActualProfit(Number(e.target.value))}
-                className="input-field w-full"
-                placeholder="実際の利益を入力"
-              />
-            </div>
-
-            <button
-              onClick={handleManualSave}
-              className="btn-primary w-full flex items-center justify-center space-x-2"
-            >
-              <Save className="h-4 w-4" />
-              <span>実績を保存</span>
-            </button>
-          </div>
-        </div>
-
-        {/* 純利益実績入力フォーム */}
-        <div className="card">
-          <h3 className="text-base sm:text-lg font-semibold text-text mb-4">
-            純利益実績入力
-          </h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-text/70 mb-1">年度</label>
-              <select
-                value={selectedPeriodYear}
-                onChange={(e) => setSelectedPeriodYear(Number(e.target.value))}
-                className="input-field w-full"
-              >
-                {generateYearOptions().map((year) => (
-                  <option key={year} value={year}>
-                    {getFiscalYearDisplay(year)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm text-text/70 mb-1">
-                当期純利益（円）
-              </label>
-              <input
-                type="number"
-                value={actualNetIncome}
-                onChange={(e) => setActualNetIncome(Number(e.target.value))}
-                className="input-field w-full"
-                placeholder="実際の当期純利益を入力"
-              />
-            </div>
-
-            <button
-              onClick={handleNetIncomeSave}
-              className="btn-primary w-full flex items-center justify-center space-x-2"
-            >
-              <Save className="h-4 w-4" />
-              <span>純利益を保存</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* 予実比較グラフ */}
       <div className="card">
         {/* グラフ切り替えボタンと年度・期間選択を2列表示 */}
         <div className="space-y-3 mb-4">
           {/* 1行目：グラフ切り替えボタン */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <button
               onClick={() => setActiveChart("revenue")}
               className={`px-4 py-2 rounded transition-colors ${
@@ -2298,7 +1916,7 @@ const BudgetActual: React.FC = () => {
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
             >
-              売上実績推移
+              月次売上推移
             </button>
             <button
               onClick={() => setActiveChart("profit")}
@@ -2308,7 +1926,17 @@ const BudgetActual: React.FC = () => {
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
             >
-              月次利益推移
+              月次粗利益推移
+            </button>
+            <button
+              onClick={() => setActiveChart("operatingProfit")}
+              className={`px-4 py-2 rounded transition-colors ${
+                activeChart === "operatingProfit"
+                  ? "bg-primary text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              月次営業利益推移
             </button>
           </div>
 
@@ -2408,6 +2036,34 @@ const BudgetActual: React.FC = () => {
             </BarChart>
           </ResponsiveContainer>
         )}
+
+        {/* 月次営業利益推移グラフ */}
+        {activeChart === "operatingProfit" && (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={getDisplayData()}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+              <XAxis dataKey="month" stroke="#333333" />
+              <YAxis
+                stroke="#333333"
+                tickFormatter={(value) => `${(value / 10000).toFixed(0)}万`}
+              />
+              <Tooltip
+                formatter={(value: number, name: string) => [
+                  `${value.toLocaleString()}円`,
+                  name === "operatingProfitTarget"
+                    ? "目標"
+                    : name === "operatingProfit"
+                    ? "実績"
+                    : name,
+                ]}
+                labelStyle={{ color: "#333333" }}
+              />
+              <Legend />
+              <Bar dataKey="operatingProfitTarget" fill="#B3DBC0" name="目標" />
+              <Bar dataKey="operatingProfit" fill="#67BACA" name="実績" />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
       {/* 詳細比較表 */}
@@ -2418,7 +2074,7 @@ const BudgetActual: React.FC = () => {
               詳細比較表
             </h3>
             <div className="text-xs sm:text-sm text-text/70">
-              💡 売上目標・利益目標をダブルクリックで編集できます
+              💡 各種目標・実績はダブルクリックで編集できます
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -2443,7 +2099,7 @@ const BudgetActual: React.FC = () => {
             <select
               value={tableViewPeriod}
               onChange={(e) =>
-                setTableViewPeriod(e.target.value as "12" | "6H1" | "6H2")
+                setTableViewPeriod(e.target.value as "6H1" | "6H2")
               }
               className="text-sm border border-border rounded px-2 py-1 pr-8 appearance-none bg-white"
               style={{
@@ -2454,20 +2110,19 @@ const BudgetActual: React.FC = () => {
                 backgroundSize: "16px",
               }}
             >
-              <option value="12">12ヶ月</option>
               <option value="6H1">上半期</option>
               <option value="6H2">下半期</option>
             </select>
           </div>
         </div>
-        {editedItems.size > 0 && (
+        {Object.keys(pendingEdits).length > 0 && (
           <div className="mt-4 text-center">
             <button
-              onClick={handleTargetSave}
+              onClick={handleTableSave}
               className="btn-primary flex items-center space-x-2 text-sm px-4 py-2"
             >
               <Save className="h-4 w-4" />
-              <span>目標を保存</span>
+              <span>変更を保存</span>
             </button>
           </div>
         )}
@@ -2475,57 +2130,46 @@ const BudgetActual: React.FC = () => {
           <table className="w-full text-xs sm:text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="text-left py-2 sm:py-3 px-1 sm:px-2">月</th>
-                <th className="text-right py-2 sm:py-3 px-1 sm:px-2 whitespace-nowrap">
-                  売上目標
+                <th className="text-center py-2 sm:py-3 px-1 sm:px-2 font-medium">
+                  項目
                 </th>
-                <th className="text-right py-2 sm:py-3 px-1 sm:px-2 whitespace-nowrap">
-                  売上実績
-                </th>
-                <th className="text-right py-2 sm:py-3 px-1 sm:px-2 whitespace-nowrap">
-                  売上達成率
-                </th>
-                <th className="text-right py-2 sm:py-3 px-1 sm:px-2 whitespace-nowrap">
-                  利益目標
-                </th>
-                <th className="text-right py-2 sm:py-3 px-1 sm:px-2 whitespace-nowrap">
-                  利益実績
-                </th>
-                <th className="text-right py-2 sm:py-3 px-1 sm:px-2 whitespace-nowrap">
-                  利益達成率
-                </th>
+                {getTableDisplayData().map((data) => (
+                  <th
+                    key={data.id}
+                    className="text-right py-2 sm:py-3 px-1 sm:px-2 whitespace-nowrap"
+                  >
+                    {data.month}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {getTableDisplayData().map((data) => {
-                const revenueRate =
-                  data.target > 0
-                    ? ((data.actual / data.target) * 100).toFixed(1)
-                    : "0.0";
-                const profitRate =
-                  data.profitTarget > 0
-                    ? ((data.profit / data.profitTarget) * 100).toFixed(1)
-                    : "0.0";
-                return (
-                  <tr key={data.id} className="border-b border-border/50">
-                    <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium">
-                      {data.month}
-                    </td>
+              {/* 売上目標 */}
+              <tr className="border-b border-border/50">
+                <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-center">
+                  売上目標
+                </td>
+                {getTableDisplayData().map((data) => {
+                  const key = `${tableYear}-${data.id}-target`;
+                  const hasPendingEdit = key in pendingEdits;
+                  const displayValue = hasPendingEdit
+                    ? pendingEdits[key]
+                    : data.target;
+                  return (
                     <td
+                      key={data.id}
                       className={`py-2 sm:py-3 px-1 sm:px-2 text-right cursor-pointer hover:bg-blue-50 transition-colors ${
-                        editedItems.has(`${data.id}-target`)
-                          ? "bg-yellow-100 border-l-2 border-yellow-400"
-                          : ""
+                        hasPendingEdit ? "bg-yellow-100" : ""
                       }`}
                       onDoubleClick={() =>
                         handleCellDoubleClick(data.id, "target")
                       }
                       title="ダブルクリックで編集"
                     >
-                      {editingCell === `${data.id}-target` ? (
+                      {editingCell === key ? (
                         <input
                           type="number"
-                          defaultValue={data.target}
+                          defaultValue={displayValue}
                           onBlur={(e) =>
                             handleCellUpdate(
                               data.id,
@@ -2548,38 +2192,116 @@ const BudgetActual: React.FC = () => {
                           autoFocus
                         />
                       ) : (
-                        data.target.toLocaleString()
+                        displayValue.toLocaleString()
                       )}
                     </td>
-                    <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
-                      {data.actual.toLocaleString()}
-                    </td>
+                  );
+                })}
+              </tr>
+              {/* 売上実績 */}
+              <tr className="border-b border-border/50">
+                <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-center">
+                  売上実績
+                </td>
+                {getTableDisplayData().map((data) => {
+                  const key = `${tableYear}-${data.id}-actual`;
+                  const hasPendingEdit = key in pendingEdits;
+                  const displayValue = hasPendingEdit
+                    ? pendingEdits[key]
+                    : data.actual;
+                  return (
                     <td
+                      key={data.id}
+                      className={`py-2 sm:py-3 px-1 sm:px-2 text-right cursor-pointer hover:bg-blue-50 transition-colors ${
+                        hasPendingEdit ? "bg-yellow-100" : ""
+                      }`}
+                      onDoubleClick={() =>
+                        handleCellDoubleClick(data.id, "actual")
+                      }
+                      title="ダブルクリックで編集"
+                    >
+                      {editingCell === key ? (
+                        <input
+                          type="number"
+                          defaultValue={displayValue}
+                          onBlur={(e) =>
+                            handleCellUpdate(
+                              data.id,
+                              "actual",
+                              Number(e.target.value)
+                            )
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              handleCellUpdate(
+                                data.id,
+                                "actual",
+                                Number(e.currentTarget.value)
+                              );
+                            } else if (e.key === "Escape") {
+                              setEditingCell(null);
+                            }
+                          }}
+                          className="w-full text-right border border-primary rounded px-1 focus:outline-none focus:ring-1 focus:ring-primary"
+                          autoFocus
+                        />
+                      ) : (
+                        displayValue.toLocaleString()
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+              {/* 売上達成率 */}
+              <tr className="border-b border-border/50">
+                <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-center">
+                  売上達成率
+                </td>
+                {getTableDisplayData().map((data) => {
+                  const rate =
+                    data.target > 0 ? (data.actual / data.target) * 100 : 0;
+                  return (
+                    <td
+                      key={data.id}
                       className={`py-2 sm:py-3 px-1 sm:px-2 text-right font-medium ${
-                        Number(revenueRate) >= 100
+                        rate >= 100
                           ? "text-success"
-                          : Number(revenueRate) >= 90
+                          : rate >= 90
                           ? "text-warning"
                           : "text-error"
                       }`}
                     >
-                      {revenueRate}%
+                      {rate.toFixed(1)}%
                     </td>
+                  );
+                })}
+              </tr>
+              {/* 利益目標 */}
+              <tr className="border-b border-border/50">
+                <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-center">
+                  利益目標
+                </td>
+                {getTableDisplayData().map((data) => {
+                  const key = `${tableYear}-${data.id}-profitTarget`;
+                  const hasPendingEdit = key in pendingEdits;
+                  const displayValue = hasPendingEdit
+                    ? pendingEdits[key]
+                    : data.profitTarget;
+                  return (
                     <td
+                      key={data.id}
                       className={`py-2 sm:py-3 px-1 sm:px-2 text-right cursor-pointer hover:bg-blue-50 transition-colors ${
-                        editedItems.has(`${data.id}-profitTarget`)
-                          ? "bg-yellow-100 border-l-2 border-yellow-400"
-                          : ""
+                        hasPendingEdit ? "bg-yellow-100" : ""
                       }`}
                       onDoubleClick={() =>
                         handleCellDoubleClick(data.id, "profitTarget")
                       }
                       title="ダブルクリックで編集"
                     >
-                      {editingCell === `${data.id}-profitTarget` ? (
+                      {editingCell === key ? (
                         <input
                           type="number"
-                          defaultValue={data.profitTarget}
+                          defaultValue={displayValue}
                           onBlur={(e) =>
                             handleCellUpdate(
                               data.id,
@@ -2602,26 +2324,227 @@ const BudgetActual: React.FC = () => {
                           autoFocus
                         />
                       ) : (
-                        data.profitTarget.toLocaleString()
+                        displayValue.toLocaleString()
                       )}
                     </td>
-                    <td className="py-2 sm:py-3 px-1 sm:px-2 text-right">
-                      {data.profit.toLocaleString()}
-                    </td>
+                  );
+                })}
+              </tr>
+              {/* 利益実績 */}
+              <tr className="border-b border-border/50">
+                <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-center">
+                  利益実績
+                </td>
+                {getTableDisplayData().map((data) => {
+                  const key = `${tableYear}-${data.id}-profit`;
+                  const hasPendingEdit = key in pendingEdits;
+                  const displayValue = hasPendingEdit
+                    ? pendingEdits[key]
+                    : data.profit;
+                  return (
                     <td
+                      key={data.id}
+                      className={`py-2 sm:py-3 px-1 sm:px-2 text-right cursor-pointer hover:bg-blue-50 transition-colors ${
+                        hasPendingEdit ? "bg-yellow-100" : ""
+                      }`}
+                      onDoubleClick={() =>
+                        handleCellDoubleClick(data.id, "profit")
+                      }
+                      title="ダブルクリックで編集"
+                    >
+                      {editingCell === key ? (
+                        <input
+                          type="number"
+                          defaultValue={displayValue}
+                          onBlur={(e) =>
+                            handleCellUpdate(
+                              data.id,
+                              "profit",
+                              Number(e.target.value)
+                            )
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              handleCellUpdate(
+                                data.id,
+                                "profit",
+                                Number(e.currentTarget.value)
+                              );
+                            } else if (e.key === "Escape") {
+                              setEditingCell(null);
+                            }
+                          }}
+                          className="w-full text-right border border-primary rounded px-1 focus:outline-none focus:ring-1 focus:ring-primary"
+                          autoFocus
+                        />
+                      ) : (
+                        displayValue.toLocaleString()
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+              {/* 利益達成率 */}
+              <tr className="border-b border-border/50">
+                <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-center">
+                  利益達成率
+                </td>
+                {getTableDisplayData().map((data) => {
+                  const rate =
+                    data.profitTarget > 0
+                      ? (data.profit / data.profitTarget) * 100
+                      : 0;
+                  return (
+                    <td
+                      key={data.id}
                       className={`py-2 sm:py-3 px-1 sm:px-2 text-right font-medium ${
-                        Number(profitRate) >= 100
+                        rate >= 100
                           ? "text-success"
-                          : Number(profitRate) >= 90
+                          : rate >= 90
                           ? "text-warning"
                           : "text-error"
                       }`}
                     >
-                      {profitRate}%
+                      {rate.toFixed(1)}%
                     </td>
-                  </tr>
-                );
-              })}
+                  );
+                })}
+              </tr>
+              {/* 営業利益目標 */}
+              <tr className="border-b border-border/50">
+                <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-center">
+                  営業利益目標
+                </td>
+                {getTableDisplayData().map((data) => {
+                  const key = `${tableYear}-${data.id}-operatingProfitTarget`;
+                  const hasPendingEdit = key in pendingEdits;
+                  const displayValue = hasPendingEdit
+                    ? pendingEdits[key]
+                    : data.operatingProfitTarget;
+                  return (
+                    <td
+                      key={data.id}
+                      className={`py-2 sm:py-3 px-1 sm:px-2 text-right cursor-pointer hover:bg-blue-50 transition-colors ${
+                        hasPendingEdit ? "bg-yellow-100" : ""
+                      }`}
+                      onDoubleClick={() =>
+                        handleCellDoubleClick(data.id, "operatingProfitTarget")
+                      }
+                      title="ダブルクリックで編集"
+                    >
+                      {editingCell === key ? (
+                        <input
+                          type="number"
+                          defaultValue={displayValue}
+                          onBlur={(e) =>
+                            handleCellUpdate(
+                              data.id,
+                              "operatingProfitTarget",
+                              Number(e.target.value)
+                            )
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              handleCellUpdate(
+                                data.id,
+                                "operatingProfitTarget",
+                                Number(e.currentTarget.value)
+                              );
+                            } else if (e.key === "Escape") {
+                              setEditingCell(null);
+                            }
+                          }}
+                          className="w-full text-right border border-primary rounded px-1 focus:outline-none focus:ring-1 focus:ring-primary"
+                          autoFocus
+                        />
+                      ) : (
+                        displayValue.toLocaleString()
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+              {/* 営業利益実績 */}
+              <tr className="border-b border-border/50">
+                <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-center">
+                  営業利益実績
+                </td>
+                {getTableDisplayData().map((data) => {
+                  const key = `${tableYear}-${data.id}-operatingProfit`;
+                  const hasPendingEdit = key in pendingEdits;
+                  const displayValue = hasPendingEdit
+                    ? pendingEdits[key]
+                    : data.operatingProfit;
+                  return (
+                    <td
+                      key={data.id}
+                      className={`py-2 sm:py-3 px-1 sm:px-2 text-right cursor-pointer hover:bg-blue-50 transition-colors ${
+                        hasPendingEdit ? "bg-yellow-100" : ""
+                      }`}
+                      onDoubleClick={() =>
+                        handleCellDoubleClick(data.id, "operatingProfit")
+                      }
+                      title="ダブルクリックで編集"
+                    >
+                      {editingCell === key ? (
+                        <input
+                          type="number"
+                          defaultValue={displayValue}
+                          onBlur={(e) =>
+                            handleCellUpdate(
+                              data.id,
+                              "operatingProfit",
+                              Number(e.target.value)
+                            )
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              handleCellUpdate(
+                                data.id,
+                                "operatingProfit",
+                                Number(e.currentTarget.value)
+                              );
+                            } else if (e.key === "Escape") {
+                              setEditingCell(null);
+                            }
+                          }}
+                          className="w-full text-right border border-primary rounded px-1 focus:outline-none focus:ring-1 focus:ring-primary"
+                          autoFocus
+                        />
+                      ) : (
+                        displayValue.toLocaleString()
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+              {/* 営業利益達成率 */}
+              <tr className="border-b border-border/50">
+                <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-center">
+                  営業利益達成率
+                </td>
+                {getTableDisplayData().map((data) => {
+                  const rate =
+                    data.operatingProfitTarget > 0
+                      ? (data.operatingProfit / data.operatingProfitTarget) *
+                        100
+                      : 0;
+                  return (
+                    <td
+                      key={data.id}
+                      className={`py-2 sm:py-3 px-1 sm:px-2 text-right font-medium ${
+                        rate >= 100
+                          ? "text-success"
+                          : rate >= 90
+                          ? "text-warning"
+                          : "text-error"
+                      }`}
+                    >
+                      {rate.toFixed(1)}%
+                    </td>
+                  );
+                })}
+              </tr>
             </tbody>
           </table>
         </div>

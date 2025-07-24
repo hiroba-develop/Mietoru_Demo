@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Save, Navigation } from "lucide-react";
 import {
   LineChart,
@@ -10,11 +10,21 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-interface YearlyTarget {
+interface YearlyData {
   year: number;
-  netWorth: number; // 純資産
-  revenue: number; // 売上
-  profit: number; // 事業の利益
+  // 純資産
+  netWorthTarget: number;
+  netWorthActual: number;
+  // 売上
+  revenueTarget: number;
+  revenueActual: number;
+  // 粗利益
+  grossProfitTarget: number;
+  grossProfitActual: number;
+  // 営業利益
+  operatingProfitTarget: number;
+  operatingProfitActual: number;
+  // フェーズ
   phase: string;
 }
 
@@ -24,13 +34,7 @@ const DEMO_ROADMAP_DATA = {
   fiscalYearStartMonth: 4,
   fiscalYearStartYear: 2023,
 
-  // 今年度と10年目標の進捗データ
-  currentYearData: {
-    target: 2000, // 万円
-    actual: 500, // 万円
-    progress: 25.0, // %
-  },
-
+  // 10年目標の進捗データ
   tenYearData: {
     target: 5000, // 万円
     actual: 500, // 万円
@@ -41,80 +45,135 @@ const DEMO_ROADMAP_DATA = {
   yearlyTargets: [
     {
       year: 1,
-      netWorth: 5000000, // 500万円
-      revenue: 12000000, // 1200万円
-      profit: 4800000, // 480万円
+      revenueTarget: 12000000,
+      revenueActual: 11500000,
+      grossProfitTarget: 4800000,
+      grossProfitActual: 4500000,
+      operatingProfitTarget: 3840000,
+      operatingProfitActual: 3600000,
+      netWorthTarget: 5000000,
+      netWorthActual: 4800000,
       phase: "創業期",
     },
     {
       year: 2,
-      netWorth: 10000000, // 1000万円
-      revenue: 18000000, // 1800万円
-      profit: 7200000, // 720万円
+      revenueTarget: 18000000,
+      revenueActual: 18500000,
+      grossProfitTarget: 7200000,
+      grossProfitActual: 7300000,
+      operatingProfitTarget: 5760000,
+      operatingProfitActual: 5840000,
+      netWorthTarget: 10000000,
+      netWorthActual: 10200000,
       phase: "創業期",
     },
     {
       year: 3,
-      netWorth: 15000000, // 1500万円
-      revenue: 24000000, // 2400万円
-      profit: 9600000, // 960万円
+      revenueTarget: 24000000,
+      revenueActual: 23000000,
+      grossProfitTarget: 9600000,
+      grossProfitActual: 9400000,
+      operatingProfitTarget: 7680000,
+      operatingProfitActual: 7520000,
+      netWorthTarget: 15000000,
+      netWorthActual: 14500000,
       phase: "創業期",
     },
     {
       year: 4,
-      netWorth: 20000000, // 2000万円
-      revenue: 30000000, // 3000万円
-      profit: 12000000, // 1200万円
+      revenueTarget: 30000000,
+      revenueActual: 31000000,
+      grossProfitTarget: 12000000,
+      grossProfitActual: 12500000,
+      operatingProfitTarget: 9600000,
+      operatingProfitActual: 10000000,
+      netWorthTarget: 20000000,
+      netWorthActual: 20500000,
       phase: "転換期",
     },
     {
       year: 5,
-      netWorth: 25000000, // 2500万円
-      revenue: 36000000, // 3600万円
-      profit: 14400000, // 1440万円
+      revenueTarget: 36000000,
+      revenueActual: 0,
+      grossProfitTarget: 14400000,
+      grossProfitActual: 0,
+      operatingProfitTarget: 11520000,
+      operatingProfitActual: 0,
+      netWorthTarget: 25000000,
+      netWorthActual: 0,
       phase: "転換期",
     },
     {
       year: 6,
-      netWorth: 30000000, // 3000万円
-      revenue: 42000000, // 4200万円
-      profit: 16800000, // 1680万円
+      revenueTarget: 42000000,
+      revenueActual: 0,
+      grossProfitTarget: 16800000,
+      grossProfitActual: 0,
+      operatingProfitTarget: 13440000,
+      operatingProfitActual: 0,
+      netWorthTarget: 30000000,
+      netWorthActual: 0,
       phase: "成長期",
     },
     {
       year: 7,
-      netWorth: 35000000, // 3500万円
-      revenue: 48000000, // 4800万円
-      profit: 19200000, // 1920万円
+      revenueTarget: 48000000,
+      revenueActual: 0,
+      grossProfitTarget: 19200000,
+      grossProfitActual: 0,
+      operatingProfitTarget: 15360000,
+      operatingProfitActual: 0,
+      netWorthTarget: 35000000,
+      netWorthActual: 0,
       phase: "成長期",
     },
     {
       year: 8,
-      netWorth: 40000000, // 4000万円
-      revenue: 54000000, // 5400万円
-      profit: 21600000, // 2160万円
+      revenueTarget: 54000000,
+      revenueActual: 0,
+      grossProfitTarget: 21600000,
+      grossProfitActual: 0,
+      operatingProfitTarget: 17280000,
+      operatingProfitActual: 0,
+      netWorthTarget: 40000000,
+      netWorthActual: 0,
       phase: "成長期",
     },
     {
       year: 9,
-      netWorth: 45000000, // 4500万円
-      revenue: 60000000, // 6000万円
-      profit: 24000000, // 2400万円
+      revenueTarget: 60000000,
+      revenueActual: 0,
+      grossProfitTarget: 24000000,
+      grossProfitActual: 0,
+      operatingProfitTarget: 19200000,
+      operatingProfitActual: 0,
+      netWorthTarget: 45000000,
+      netWorthActual: 0,
       phase: "成長期",
     },
     {
       year: 10,
-      netWorth: 50000000, // 5000万円
-      revenue: 66000000, // 6600万円
-      profit: 26400000, // 2640万円
+      revenueTarget: 66000000,
+      revenueActual: 0,
+      grossProfitTarget: 26400000,
+      grossProfitActual: 0,
+      operatingProfitTarget: 21120000,
+      operatingProfitActual: 0,
+      netWorthTarget: 50000000,
+      netWorthActual: 0,
       phase: "成長期",
     },
   ],
 };
 
+type EditableField =
+  | "revenueTarget"
+  | "grossProfitTarget"
+  | "operatingProfitTarget"
+  | "netWorthTarget";
+
 const Roadmap: React.FC = () => {
   // アニメーション用の状態
-  const [yearlyProgress, setYearlyProgress] = useState(0);
   const [tenYearProgress, setTenYearProgress] = useState(0);
 
   // ローディング状態
@@ -123,38 +182,26 @@ const Roadmap: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   // 進捗計算用の状態（デモデータで初期化）
-  const [currentYearData] = useState(DEMO_ROADMAP_DATA.currentYearData);
   const [tenYearData] = useState(DEMO_ROADMAP_DATA.tenYearData);
 
-  // 事業年度開始年月の状態
-  const [fiscalYearStartMonth] = useState<number>(
-    DEMO_ROADMAP_DATA.fiscalYearStartMonth
-  );
-  const [fiscalYearStartYear] = useState<number>(
-    DEMO_ROADMAP_DATA.fiscalYearStartYear
-  );
-
-  const [targets, setTargets] = useState<YearlyTarget[]>(
-    DEMO_ROADMAP_DATA.yearlyTargets
-  );
-  const [originalTargets, setOriginalTargets] = useState<YearlyTarget[]>(
+  const [targets, setTargets] = useState<YearlyData[]>(
     DEMO_ROADMAP_DATA.yearlyTargets
   );
 
-  const phases = [
-    { name: "創業期", years: "1年目〜3年目" },
-    { name: "転換期", years: "4年目〜5年目" },
-    { name: "成長期", years: "6年目〜10年目" },
-  ];
+  // 新しいテーブル用の状態
+  const [tableViewPeriod, setTableViewPeriod] = useState<"1-5" | "6-10">("1-5");
+  const [editingCell, setEditingCell] = useState<string | null>(null);
+  const [pendingEdits, setPendingEdits] = useState<{ [key: string]: number }>(
+    {}
+  );
 
   // デモデータを読み込み
   useEffect(() => {
     const loadDemoData = async () => {
       try {
         setIsLoading(true);
-
-        // デモ用の遅延
         await new Promise((resolve) => setTimeout(resolve, 1500));
+        setTargets(JSON.parse(JSON.stringify(DEMO_ROADMAP_DATA.yearlyTargets)));
       } catch (err) {
         setError("データの読み込みに失敗しました");
       } finally {
@@ -165,63 +212,38 @@ const Roadmap: React.FC = () => {
     loadDemoData();
   }, []);
 
-  const handleTargetChange = (
+  const handleCellUpdate = (
     year: number,
-    field: keyof YearlyTarget,
-    value: string | number
+    field: EditableField,
+    value: number
   ) => {
+    const key = `${year}-${field}`;
+    setPendingEdits((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+
+    // targets stateも更新してUIに即時反映
     setTargets((prev) =>
       prev.map((target) =>
         target.year === year ? { ...target, [field]: value } : target
       )
     );
+    setEditingCell(null);
   };
 
-  // 値が変更されているかどうかを判定する関数
-  const isValueChanged = (year: number, field: keyof YearlyTarget): boolean => {
-    const currentTarget = targets.find((t) => t.year === year);
-    const originalTarget = originalTargets.find((t) => t.year === year);
-
-    if (!currentTarget || !originalTarget) return false;
-
-    return currentTarget[field] !== originalTarget[field];
-  };
-
-  // 変更されたinputのクラス名を取得する関数
-  const getInputClassName = (
-    year: number,
-    field: keyof YearlyTarget
-  ): string => {
-    const baseClass = "input-field w-full text-sm";
-    const changedClass = "bg-blue-50 border-blue-300";
-
-    return isValueChanged(year, field)
-      ? `${baseClass} ${changedClass}`
-      : baseClass;
+  const handleCellDoubleClick = (year: number, field: EditableField) => {
+    const key = `${year}-${field}`;
+    setEditingCell(key);
   };
 
   // 目標が変更されているかどうかを確認する関数
   const hasChanges = (): boolean => {
-    for (const target of targets) {
-      const originalTarget = originalTargets.find(
-        (t) => t.year === target.year
-      );
-      if (!originalTarget) continue;
-
-      if (
-        target.netWorth !== originalTarget.netWorth ||
-        target.revenue !== originalTarget.revenue ||
-        target.profit !== originalTarget.profit
-      ) {
-        return true;
-      }
-    }
-    return false;
+    return Object.keys(pendingEdits).length > 0;
   };
 
   // 保存ボタン押下時の処理
   const handleSave = async () => {
-    // 変更がない場合はアラートを表示
     if (!hasChanges()) {
       alert("目標が変更されていません");
       return;
@@ -229,12 +251,10 @@ const Roadmap: React.FC = () => {
 
     try {
       setIsSaving(true);
-
-      // デモ用の遅延
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // 更新が成功したら、現在の目標を新しいオリジナル目標として設定
-      setOriginalTargets([...targets]);
+      // 状態を更新
+      setPendingEdits({});
       alert("目標が正常に保存されました (デモモード)");
     } catch (err) {
       console.error("デモ目標保存エラー:", err);
@@ -246,23 +266,7 @@ const Roadmap: React.FC = () => {
 
   // アニメーション効果
   useEffect(() => {
-    const targetYearlyProgress = currentYearData.progress;
     const targetTenYearProgress = tenYearData.progress;
-
-    const yearlyTimer = setTimeout(() => {
-      let progress = 0;
-      const yearlyInterval = setInterval(() => {
-        progress += 1;
-        setYearlyProgress(progress);
-        if (progress >= targetYearlyProgress) {
-          clearInterval(yearlyInterval);
-          // 進捗が0%の場合、確実に0%と表示されるようにする
-          if (targetYearlyProgress === 0) {
-            setYearlyProgress(0);
-          }
-        }
-      }, 20);
-    }, 300);
 
     const tenYearTimer = setTimeout(() => {
       let progress = 0;
@@ -271,7 +275,6 @@ const Roadmap: React.FC = () => {
         setTenYearProgress(progress);
         if (progress >= targetTenYearProgress) {
           clearInterval(tenYearInterval);
-          // 進捗が0%の場合、確実に0%と表示されるようにする
           if (targetTenYearProgress === 0) {
             setTenYearProgress(0);
           }
@@ -280,10 +283,18 @@ const Roadmap: React.FC = () => {
     }, 800);
 
     return () => {
-      clearTimeout(yearlyTimer);
       clearTimeout(tenYearTimer);
     };
-  }, [currentYearData.progress, tenYearData.progress]);
+  }, [tenYearData.progress]);
+
+  // テーブル表示用のデータを取得
+  const getTableDisplayData = useCallback(() => {
+    if (tableViewPeriod === "1-5") {
+      return targets.slice(0, 5);
+    } else {
+      return targets.slice(5, 10);
+    }
+  }, [targets, tableViewPeriod]);
 
   // ローディング表示
   if (isLoading) {
@@ -315,6 +326,95 @@ const Roadmap: React.FC = () => {
     );
   }
 
+  const renderTableRow = (
+    label: string,
+    field: keyof YearlyData,
+    isEditable: boolean = false,
+    isRate: boolean = false,
+    targetField?: keyof YearlyData,
+    actualField?: keyof YearlyData
+  ) => {
+    return (
+      <tr className="border-b border-border/50">
+        <td className="py-2 sm:py-3 px-1 sm:px-2 font-medium whitespace-nowrap text-center">
+          {label}
+        </td>
+        {getTableDisplayData().map((data) => {
+          if (isRate && targetField && actualField) {
+            const targetValue = data[targetField] as number;
+            const actualValue = data[actualField] as number;
+            const rate =
+              targetValue > 0 ? (actualValue / targetValue) * 100 : 0;
+            return (
+              <td
+                key={data.year}
+                className={`py-2 sm:py-3 px-1 sm:px-2 text-right font-medium ${
+                  rate >= 100
+                    ? "text-success"
+                    : rate >= 90
+                    ? "text-warning"
+                    : "text-error"
+                }`}
+              >
+                {actualValue > 0 ? `${rate.toFixed(1)}%` : "-"}
+              </td>
+            );
+          }
+
+          const key = `${data.year}-${field}`;
+          const displayValue = data[field as EditableField] as number;
+
+          return (
+            <td
+              key={data.year}
+              className={`py-2 sm:py-3 px-1 sm:px-2 text-right ${
+                isEditable
+                  ? "cursor-pointer hover:bg-blue-50 transition-colors"
+                  : ""
+              } ${isEditable && key in pendingEdits ? "bg-yellow-100" : ""}`}
+              onDoubleClick={() =>
+                isEditable &&
+                handleCellDoubleClick(data.year, field as EditableField)
+              }
+              title={isEditable ? "ダブルクリックで編集" : ""}
+            >
+              {isEditable && editingCell === key ? (
+                <input
+                  type="number"
+                  defaultValue={displayValue / 10000}
+                  onBlur={(e) =>
+                    handleCellUpdate(
+                      data.year,
+                      field as EditableField,
+                      Number(e.target.value) * 10000
+                    )
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleCellUpdate(
+                        data.year,
+                        field as EditableField,
+                        Number(e.currentTarget.value) * 10000
+                      );
+                    } else if (e.key === "Escape") {
+                      setEditingCell(null);
+                    }
+                  }}
+                  className="w-full text-right border border-primary rounded px-1 focus:outline-none focus:ring-1 focus:ring-primary"
+                  autoFocus
+                />
+              ) : displayValue > 0 || !isRate ? (
+                `${(displayValue / 10000).toLocaleString()}万`
+              ) : (
+                "-"
+              )}
+            </td>
+          );
+        })}
+      </tr>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -324,294 +424,230 @@ const Roadmap: React.FC = () => {
             ロードマップ設定 (デモモード)
           </h1>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-          <button
-            className="btn-primary flex items-center justify-center space-x-2 text-sm"
-            onClick={handleSave}
-            disabled={isSaving}
-          >
-            <Save className="h-4 w-4" />
-            <span>{isSaving ? "保存中..." : "保存"}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 10年ロードマップ進捗 */}
-      <div className="card">
-        <h3 className="text-base sm:text-lg font-semibold text-text mb-4">
-          10年ロードマップ進捗
-        </h3>
-        <div className="mb-6 text-center">
-          <p className="text-sm sm:text-base text-text/80 leading-relaxed">
-            10年間で純資産5000万円を目指すロードマップを作成します。
-            <br />
-            １年ごとの目標をご提案します。
-          </p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {/* 今年度進捗 */}
-          <div>
-            <h4 className="text-md font-medium text-text mb-3 text-center">
-              今年度目標
-            </h4>
-            <div className="w-full h-48 flex items-center justify-center">
-              <div className="relative w-32 h-32">
-                <svg
-                  className="w-full h-full transform -rotate-90"
-                  viewBox="0 0 100 100"
-                >
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    stroke="#E0E0E0"
-                    strokeWidth="8"
-                    fill="none"
-                  />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    stroke="#67BACA"
-                    strokeWidth="8"
-                    fill="none"
-                    strokeDasharray={`${(yearlyProgress * 251.2) / 100} 251.2`}
-                    strokeLinecap="round"
-                    className="transition-all duration-300"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-primary">
-                      {yearlyProgress === 0
-                        ? "0.0%"
-                        : `${yearlyProgress.toFixed(1)}%`}
-                    </div>
-                    <div className="text-xs text-gray-600">今年度進捗</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-text/70">
-                {currentYearData.actual}万 / {currentYearData.target}万
-              </p>
-            </div>
-          </div>
-
-          {/* 10年進捗 */}
-          <div>
-            <h4 className="text-md font-medium text-text mb-3 text-center">
-              10年目標
-            </h4>
-            <div className="w-full h-48 flex items-center justify-center">
-              <div className="relative w-32 h-32">
-                <svg
-                  className="w-full h-full transform -rotate-90"
-                  viewBox="0 0 100 100"
-                >
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    stroke="#E0E0E0"
-                    strokeWidth="8"
-                    fill="none"
-                  />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="40"
-                    stroke="#67BACA"
-                    strokeWidth="8"
-                    fill="none"
-                    strokeDasharray={`${(tenYearProgress * 251.2) / 100} 251.2`}
-                    strokeLinecap="round"
-                    className="transition-all duration-300"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-lg font-bold text-primary">
-                      {tenYearProgress === 0
-                        ? "0.0%"
-                        : `${tenYearProgress.toFixed(1)}%`}
-                    </div>
-                    <div className="text-xs text-gray-600">10年進捗</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="text-center">
-              <p className="text-sm text-text/70">
-                {tenYearData.actual}万 / {tenYearData.target}万
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* 凡例 */}
-        <div className="flex justify-center mt-4 space-x-4">
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-primary rounded-full"></div>
-            <span className="text-sm text-text/70">達成</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
-            <span className="text-sm text-text/70">未達成</span>
-          </div>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* 設定フォーム */}
+        {/* 10年ロードマップ進捗 */}
         <div className="card">
           <h3 className="text-base sm:text-lg font-semibold text-text mb-4">
-            10年間の目標設定
+            10年ロードマップ進捗
           </h3>
-          <div className="space-y-4 max-h-96 sm:max-h-dvh overflow-y-auto">
-            {targets.map((target) => (
-              <div
-                key={target.year}
-                className="border border-border rounded-lg p-3 sm:p-4"
-              >
-                <h4 className="text-sm sm:text-base font-medium text-text mb-3">
-                  {target.year}年目（{fiscalYearStartYear + target.year - 1}年
-                  {fiscalYearStartMonth}月〜
-                  {fiscalYearStartMonth === 1
-                    ? `${fiscalYearStartYear + target.year}年12月`
-                    : `${fiscalYearStartYear + target.year}年${
-                        fiscalYearStartMonth - 1
-                      }月`}
-                  ）
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs sm:text-sm text-text/70 mb-1">
-                      純資産（万円）
-                    </label>
-                    <input
-                      type="number"
-                      value={target.netWorth / 10000}
-                      onChange={(e) =>
-                        handleTargetChange(
-                          target.year,
-                          "netWorth",
-                          Number(e.target.value) * 10000
-                        )
-                      }
-                      className={getInputClassName(target.year, "netWorth")}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs sm:text-sm text-text/70 mb-1">
-                      売上（万円）
-                    </label>
-                    <input
-                      type="number"
-                      value={target.revenue / 10000}
-                      onChange={(e) =>
-                        handleTargetChange(
-                          target.year,
-                          "revenue",
-                          Number(e.target.value) * 10000
-                        )
-                      }
-                      className={getInputClassName(target.year, "revenue")}
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="block text-xs sm:text-sm text-text/70 mb-1">
-                      事業の利益（万円）
-                    </label>
-                    <input
-                      type="number"
-                      value={target.profit / 10000}
-                      onChange={(e) =>
-                        handleTargetChange(
-                          target.year,
-                          "profit",
-                          Number(e.target.value) * 10000
-                        )
-                      }
-                      className={getInputClassName(target.year, "profit")}
-                    />
-                  </div>
-                </div>
-                <div className="mt-3">
-                  <div className="text-xs sm:text-sm text-text/70">
-                    事業フェーズ:{" "}
-                    <span className="font-medium text-text">
-                      {target.phase}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="mb-6 text-center">
+            <p className="text-sm sm:text-base text-text/80 leading-relaxed">
+              10年間で純資産5000万円を目指すロードマップを作成します。
+              <br />
+              １年ごとの目標をご提案します。
+            </p>
           </div>
-        </div>
-
-        {/* 可視化エリア */}
-        <div className="space-y-6">
-          {/* 純資産推移グラフ */}
-          <div className="card">
-            <h3 className="text-base sm:text-lg font-semibold text-text mb-4">
-              純資産推移予測
-            </h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={targets}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
-                <XAxis
-                  dataKey="year"
-                  stroke="#333333"
-                  tickFormatter={(value) => `${value}年`}
-                />
-                <YAxis
-                  stroke="#333333"
-                  domain={[0, 50000000]} // 5000万円をMAXに設定
-                  tickFormatter={(value) => `${(value / 10000).toFixed(0)}万`}
-                />
-                <Tooltip
-                  formatter={(value: number) => [
-                    `${(value / 10000).toLocaleString()}万円`,
-                    "",
-                  ]}
-                  labelFormatter={(label) => `${label}年目`}
-                  labelStyle={{ color: "#333333" }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="netWorth"
-                  stroke="#67BACA"
-                  strokeWidth={3}
-                  dot={{ fill: "#67BACA", strokeWidth: 2, r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* 事業フェーズ概要 */}
-          <div className="card">
-            <h3 className="text-base sm:text-lg font-semibold text-text mb-4">
-              事業フェーズ概要
-            </h3>
-            <div className="space-y-3">
-              {phases.map((phase, _) => (
-                <div key={phase.name} className="flex items-center space-x-3">
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-text">
-                        {phase.name}
-                      </span>
-                      <span className="text-sm text-text/70">
-                        ({phase.years})
-                      </span>
+          <div className="flex justify-center">
+            {/* 10年進捗 */}
+            <div>
+              <h4 className="text-md font-medium text-text mb-3 text-center">
+                10年目標
+              </h4>
+              <div className="w-full h-48 flex items-center justify-center">
+                <div className="relative w-32 h-32">
+                  <svg
+                    className="w-full h-full transform -rotate-90"
+                    viewBox="0 0 100 100"
+                  >
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      stroke="#E0E0E0"
+                      strokeWidth="8"
+                      fill="none"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      stroke="#67BACA"
+                      strokeWidth="8"
+                      fill="none"
+                      strokeDasharray={`${
+                        (tenYearProgress * 251.2) / 100
+                      } 251.2`}
+                      strokeLinecap="round"
+                      className="transition-all duration-300"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-primary">
+                        {tenYearProgress === 0
+                          ? "0.0%"
+                          : `${tenYearProgress.toFixed(1)}%`}
+                      </div>
+                      <div className="text-xs text-gray-600">10年進捗</div>
                     </div>
                   </div>
                 </div>
-              ))}
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-text/70">
+                  {tenYearData.actual}万 / {tenYearData.target}万
+                </p>
+              </div>
             </div>
           </div>
+
+          {/* 凡例 */}
+          <div className="flex justify-center mt-4 space-x-4">
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-primary rounded-full"></div>
+              <span className="text-sm text-text/70">達成</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
+              <span className="text-sm text-text/70">未達成</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 純資産推移グラフ */}
+        <div className="card">
+          <h3 className="text-base sm:text-lg font-semibold text-text mb-4">
+            純資産推移予測
+          </h3>
+          <ResponsiveContainer width="100%" height={320}>
+            <LineChart data={targets}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E0E0E0" />
+              <XAxis
+                dataKey="year"
+                stroke="#333333"
+                tickFormatter={(value) => `${value}年`}
+              />
+              <YAxis
+                stroke="#333333"
+                domain={[0, 50000000]} // 5000万円をMAXに設定
+                tickFormatter={(value) => `${(value / 10000).toFixed(0)}万`}
+              />
+              <Tooltip
+                formatter={(value: number) => [
+                  `${(value / 10000).toLocaleString()}万円`,
+                  "目標",
+                ]}
+                labelFormatter={(label) => `${label}年`}
+                labelStyle={{ color: "#333333" }}
+              />
+              <Line
+                type="monotone"
+                dataKey="netWorthTarget"
+                stroke="#67BACA"
+                strokeWidth={3}
+                dot={{ fill: "#67BACA", strokeWidth: 2, r: 4 }}
+                name="純資産目標"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* 10年間の目標設定テーブル */}
+      <div className="card">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <h3 className="text-base sm:text-lg font-semibold text-text">
+              10年間の目標設定
+            </h3>
+            <div className="text-xs sm:text-sm text-text/70">
+              💡 各種目標はダブルクリックで編集できます
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-2">
+            <select
+              value={tableViewPeriod}
+              onChange={(e) =>
+                setTableViewPeriod(e.target.value as "1-5" | "6-10")
+              }
+              className="text-sm border border-border rounded px-2 py-1 pr-8 appearance-none bg-white"
+              style={{
+                backgroundImage:
+                  'url(\'data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>\')',
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "calc(100% - 4px) center",
+                backgroundSize: "16px",
+              }}
+            >
+              <option value="1-5">1〜5年</option>
+              <option value="6-10">6〜10年</option>
+            </select>
+          </div>
+        </div>
+        {hasChanges() && (
+          <div className="my-4 text-left">
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="btn-primary flex items-center space-x-2 text-sm px-4 py-2"
+            >
+              <Save className="h-4 w-4" />
+              <span>{isSaving ? "保存中..." : "変更を保存"}</span>
+            </button>
+          </div>
+        )}
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs sm:text-sm">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="text-center py-2 sm:py-3 px-1 sm:px-2 font-medium">
+                  項目
+                </th>
+                {getTableDisplayData().map((data) => (
+                  <th
+                    key={data.year}
+                    className="text-right py-2 sm:py-3 px-1 sm:px-2 whitespace-nowrap"
+                  >
+                    {data.year}年目
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {renderTableRow("売上目標", "revenueTarget", true)}
+              {renderTableRow("売上実績", "revenueActual")}
+              {renderTableRow(
+                "売上達成率",
+                "revenueActual",
+                false,
+                true,
+                "revenueTarget",
+                "revenueActual"
+              )}
+              {renderTableRow("粗利益目標", "grossProfitTarget", true)}
+              {renderTableRow("粗利益実績", "grossProfitActual")}
+              {renderTableRow(
+                "粗利益達成率",
+                "grossProfitActual",
+                false,
+                true,
+                "grossProfitTarget",
+                "grossProfitActual"
+              )}
+              {renderTableRow("営業利益目標", "operatingProfitTarget", true)}
+              {renderTableRow("営業利益実績", "operatingProfitActual")}
+              {renderTableRow(
+                "営業利益達成率",
+                "operatingProfitActual",
+                false,
+                true,
+                "operatingProfitTarget",
+                "operatingProfitActual"
+              )}
+              {renderTableRow("純資産目標", "netWorthTarget", true)}
+              {renderTableRow("純資産実績", "netWorthActual")}
+              {renderTableRow(
+                "純資産達成率",
+                "netWorthActual",
+                false,
+                true,
+                "netWorthTarget",
+                "netWorthActual"
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
