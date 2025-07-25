@@ -6,7 +6,6 @@ import type {
   InitialSetup,
   CompanySize,
   Industry,
-  BusinessExperience,
   FinancialKnowledge,
   SetupStep,
 } from "../types";
@@ -30,14 +29,7 @@ const Setup: React.FC = () => {
     fiscalYearStartMonth: 4,
     fiscalYearStartYear: new Date().getFullYear(),
     industry: "IT・ソフトウェア",
-    businessExperience: "1年未満",
     financialKnowledge: "初心者",
-    priorityGoals: [],
-    longTermGoal: {
-      targetYear: new Date().getFullYear() + 10,
-      targetNetWorth: 50000000, // 5000万円
-      description: "10年で純資産5000万円を達成する",
-    },
   });
 
   // ログインしていない場合はリダイレクト（ただし、shouldRedirectToSetupがtrueの場合は除く）
@@ -96,14 +88,6 @@ const Setup: React.FC = () => {
     "金融・保険",
     "不動産",
     "その他",
-  ];
-
-  const experienceOptions: BusinessExperience[] = [
-    "1年未満",
-    "1-3年",
-    "3-5年",
-    "5-10年",
-    "10年以上",
   ];
 
   const knowledgeOptions: FinancialKnowledge[] = [
@@ -321,33 +305,6 @@ const Setup: React.FC = () => {
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3">
-                事業経験年数
-              </label>
-              <div className="space-y-2">
-                {experienceOptions.map((exp) => (
-                  <label key={exp} className="flex items-center">
-                    <input
-                      type="radio"
-                      name="experience"
-                      value={exp}
-                      checked={setupData.businessExperience === exp}
-                      onChange={(e) =>
-                        setSetupData({
-                          ...setupData,
-                          businessExperience: e.target
-                            .value as BusinessExperience,
-                        })
-                      }
-                      className="mr-3 text-primary focus:ring-primary"
-                    />
-                    <span>{exp}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
                 財務・会計の知識レベル
               </label>
               <div className="space-y-2">
@@ -430,10 +387,6 @@ const Setup: React.FC = () => {
                   {formatCurrency(setupData.currentAssets)}
                 </p>
                 <p>
-                  <span className="text-gray-600">事業経験:</span>{" "}
-                  {setupData.businessExperience}
-                </p>
-                <p>
                   <span className="text-gray-600">財務知識:</span>{" "}
                   {setupData.financialKnowledge}
                 </p>
@@ -441,10 +394,6 @@ const Setup: React.FC = () => {
                   <span className="text-gray-600">事業年度開始:</span>{" "}
                   {setupData.fiscalYearStartYear}年
                   {setupData.fiscalYearStartMonth}月
-                </p>
-                <p>
-                  <span className="text-gray-600">10年後の目標:</span>{" "}
-                  {formatCurrency(setupData.longTermGoal.targetNetWorth)}
                 </p>
               </div>
             </div>
