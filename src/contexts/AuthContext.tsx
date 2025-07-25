@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
-import type { AuthUser, InitialSetup, PriorityGoal } from "../types";
+import type { AuthUser, InitialSetup } from "../types";
 import { jwtDecode } from "jwt-decode";
 
 interface AuthContextType {
@@ -259,22 +259,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         fiscalYearStartMonth: DEMO_USER_SETTINGS.fiscalYearStartMonth,
         fiscalYearStartYear: DEMO_USER_SETTINGS.fiscalYearStartYear,
         industry: getIndustryString(DEMO_USER_SETTINGS.industry),
-        businessExperience: getBusinessExperienceString(
-          DEMO_USER_SETTINGS.businessExperience
-        ),
         financialKnowledge: getFinancialKnowledgeString(
           DEMO_USER_SETTINGS.financialKnowledge
         ),
-        priorityGoals: [
-          "事業の売上を安定させる" as PriorityGoal,
-          "経費を効率的に管理する" as PriorityGoal,
-          "税務処理を適切に行う" as PriorityGoal,
-        ],
-        longTermGoal: {
-          targetYear: new Date().getFullYear() + 10,
-          targetNetWorth: 50000000,
-          description: "10年で純資産5000万円を達成する",
-        },
       };
       setUserSetup(setupData);
     } catch (error) {
@@ -343,25 +330,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return "その他";
       default:
         return "IT・ソフトウェア";
-    }
-  };
-
-  const getBusinessExperienceString = (
-    experience?: number
-  ): "1年未満" | "1-3年" | "3-5年" | "5-10年" | "10年以上" => {
-    switch (experience) {
-      case 1:
-        return "1年未満";
-      case 2:
-        return "1-3年";
-      case 3:
-        return "3-5年";
-      case 4:
-        return "5-10年";
-      case 5:
-        return "10年以上";
-      default:
-        return "1年未満";
     }
   };
 

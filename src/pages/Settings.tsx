@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Save, Plus, Trash2, Bell, User, Building, Target } from "lucide-react";
+import { Save, Plus, Trash2, Bell, User, Building } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import type {
   InitialSetup,
   CompanySize,
   Industry,
-  BusinessExperience,
   FinancialKnowledge,
   TaskType,
 } from "../types";
@@ -31,6 +30,7 @@ const DEMO_SETTING_DATA = {
   totalAssets: 5000000, // 500万円
   businessExperience: 2, // 1-3年
   financialKnowledge: 2, // 基本レベル
+  capital: 1000000, // 資本金100万円
 };
 
 // デモ用のタスクデータ
@@ -63,7 +63,7 @@ const DEMO_TASKS: Task[] = [
 
 const Settings: React.FC = () => {
   const { user, updateUserSetup } = useAuth();
-  const isTaxAccountant = user?.role === "1" || user?.role === "2";
+  const isNotNormalAccount = user?.role === "1" || user?.role === "2";
 
   const [tasks, setTasks] = useState<Task[]>(DEMO_TASKS);
   const [newTaskName, setNewTaskName] = useState("");
@@ -107,14 +107,6 @@ const Settings: React.FC = () => {
     "その他",
   ];
 
-  const experienceOptions: BusinessExperience[] = [
-    "1年未満",
-    "1-3年",
-    "3-5年",
-    "5-10年",
-    "10年以上",
-  ];
-
   const knowledgeOptions: FinancialKnowledge[] = [
     "初心者",
     "基本レベル",
@@ -148,19 +140,6 @@ const Settings: React.FC = () => {
       11: "その他",
     };
     return mapping[industry] || "その他";
-  };
-
-  const getBusinessExperienceFromNumber = (
-    experience: number
-  ): BusinessExperience => {
-    const mapping: { [key: number]: BusinessExperience } = {
-      1: "1年未満",
-      2: "1-3年",
-      3: "3-5年",
-      4: "5-10年",
-      5: "10年以上",
-    };
-    return mapping[experience] || "1年未満";
   };
 
   const getFinancialKnowledgeFromNumber = (
@@ -201,18 +180,10 @@ const Settings: React.FC = () => {
           fiscalYearStartYear: DEMO_SETTING_DATA.fiscalYearStartYear,
           fiscalYearStartMonth: DEMO_SETTING_DATA.fiscalYearStartMonth,
           currentAssets: DEMO_SETTING_DATA.totalAssets,
-          businessExperience: getBusinessExperienceFromNumber(
-            DEMO_SETTING_DATA.businessExperience
-          ),
           financialKnowledge: getFinancialKnowledgeFromNumber(
             DEMO_SETTING_DATA.financialKnowledge
           ),
-          priorityGoals: [],
-          longTermGoal: {
-            targetYear: DEMO_SETTING_DATA.fiscalYearStartYear + 10,
-            targetNetWorth: DEMO_SETTING_DATA.totalAssets * 10,
-            description: "10年で純資産5000万円を達成する",
-          },
+          capital: DEMO_SETTING_DATA.capital,
         };
 
         setSetupData(convertedSetupData);
@@ -405,182 +376,150 @@ const Settings: React.FC = () => {
         </button>
       </div>
 
-      {!isTaxAccountant && (
+      {!isNotNormalAccount && (
         <>
-          {/* 事業基本情報設定 */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
-            {/* 基本情報 */}
-            <div className="card">
-              <div className="flex items-center space-x-2 mb-4">
-                <Building className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                <h3 className="text-base sm:text-lg font-semibold text-text">
-                  事業基本情報
-                </h3>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm text-text/70 mb-2">
-                    会社名（任意）
-                  </label>
-                  <input
-                    type="text"
-                    value={setupData.companyName || ""}
-                    onChange={(e) =>
-                      setSetupData({
-                        ...setupData,
-                        companyName: e.target.value,
-                      })
-                    }
-                    className="input-field w-full"
-                    placeholder="会社名を入力してください（任意）"
-                    disabled={isTaxAccountant}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm text-text/70 mb-2">
-                    企業規模
-                  </label>
-                  <select
-                    value={setupData.companySize}
-                    onChange={(e) =>
-                      setSetupData({
-                        ...setupData,
-                        companySize: e.target.value as CompanySize,
-                      })
-                    }
-                    className="input-field w-full pr-8 appearance-none bg-white"
-                    style={{
-                      backgroundImage:
-                        'url(\'data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>\')',
-                      backgroundRepeat: "no-repeat",
-                      backgroundPosition: "calc(100% - 4px) center",
-                      backgroundSize: "16px",
-                    }}
-                    disabled={isTaxAccountant}
-                  >
-                    {companyTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm text-text/70 mb-2">
-                    業界
-                  </label>
-                  <select
-                    value={setupData.industry}
-                    onChange={(e) =>
-                      setSetupData({
-                        ...setupData,
-                        industry: e.target.value as Industry,
-                      })
-                    }
-                    className="input-field w-full pr-8 appearance-none bg-white"
-                    style={{
-                      backgroundImage:
-                        'url(\'data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>\')',
-                      backgroundRepeat: "no-repeat",
-                      backgroundPosition: "calc(100% - 4px) center",
-                      backgroundSize: "16px",
-                    }}
-                    disabled={isTaxAccountant}
-                  >
-                    {industries.map((industry) => (
-                      <option key={industry} value={industry}>
-                        {industry}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm text-text/70 mb-2">
-                    事業年度開始年月
-                  </label>
-                  <p className="text-text font-medium">
-                    {setupData.fiscalYearStartYear || new Date().getFullYear()}
-                    年{setupData.fiscalYearStartMonth}月
-                  </p>
-                </div>
-              </div>
+          {/* 基本情報 */}
+          <div className="card mb-6">
+            <div className="flex items-center space-x-2 mb-4">
+              <Building className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+              <h3 className="text-base sm:text-lg font-semibold text-text">
+                基本情報
+              </h3>
             </div>
 
-            {/* 財務・目標設定 */}
-            <div className="card">
-              <div className="flex items-center space-x-2 mb-4">
-                <Target className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-                <h3 className="text-base sm:text-lg font-semibold text-text">
-                  財務・目標設定
-                </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm text-text/70 mb-2">
+                  会社名（任意）
+                </label>
+                <input
+                  type="text"
+                  value={setupData.companyName || ""}
+                  onChange={(e) =>
+                    setSetupData({
+                      ...setupData,
+                      companyName: e.target.value,
+                    })
+                  }
+                  className="input-field w-full"
+                  placeholder="会社名を入力してください（任意）"
+                  disabled={isNotNormalAccount}
+                />
               </div>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm text-text/70 mb-2">
-                    事業経験
-                  </label>
-                  <select
-                    value={setupData.businessExperience}
-                    onChange={(e) =>
-                      setSetupData({
-                        ...setupData,
-                        businessExperience: e.target
-                          .value as BusinessExperience,
-                      })
-                    }
-                    className="input-field w-full pr-8 appearance-none bg-white"
-                    style={{
-                      backgroundImage:
-                        'url(\'data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>\')',
-                      backgroundRepeat: "no-repeat",
-                      backgroundPosition: "calc(100% - 4px) center",
-                      backgroundSize: "16px",
-                    }}
-                    disabled={isTaxAccountant}
-                  >
-                    {experienceOptions.map((exp) => (
-                      <option key={exp} value={exp}>
-                        {exp}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <label className="block text-sm text-text/70 mb-2">
+                  企業規模
+                </label>
+                <select
+                  value={setupData.companySize}
+                  onChange={(e) =>
+                    setSetupData({
+                      ...setupData,
+                      companySize: e.target.value as CompanySize,
+                    })
+                  }
+                  className="input-field w-full pr-8 appearance-none bg-white"
+                  style={{
+                    backgroundImage:
+                      'url(\'data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>\')',
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "calc(100% - 4px) center",
+                    backgroundSize: "16px",
+                  }}
+                  disabled={isNotNormalAccount}
+                >
+                  {companyTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                <div>
-                  <label className="block text-sm text-text/70 mb-2">
-                    財務知識レベル
-                  </label>
-                  <select
-                    value={setupData.financialKnowledge}
-                    onChange={(e) =>
-                      setSetupData({
-                        ...setupData,
-                        financialKnowledge: e.target
-                          .value as FinancialKnowledge,
-                      })
-                    }
-                    className="input-field w-full pr-8 appearance-none bg-white"
-                    style={{
-                      backgroundImage:
-                        'url(\'data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>\')',
-                      backgroundRepeat: "no-repeat",
-                      backgroundPosition: "calc(100% - 4px) center",
-                      backgroundSize: "16px",
-                    }}
-                    disabled={isTaxAccountant}
-                  >
-                    {knowledgeOptions.map((knowledge) => (
-                      <option key={knowledge} value={knowledge}>
-                        {knowledge}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <label className="block text-sm text-text/70 mb-2">業界</label>
+                <select
+                  value={setupData.industry}
+                  onChange={(e) =>
+                    setSetupData({
+                      ...setupData,
+                      industry: e.target.value as Industry,
+                    })
+                  }
+                  className="input-field w-full pr-8 appearance-none bg-white"
+                  style={{
+                    backgroundImage:
+                      'url(\'data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>\')',
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "calc(100% - 4px) center",
+                    backgroundSize: "16px",
+                  }}
+                  disabled={isNotNormalAccount}
+                >
+                  {industries.map((industry) => (
+                    <option key={industry} value={industry}>
+                      {industry}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-text/70 mb-2">
+                  財務知識レベル
+                </label>
+                <select
+                  value={setupData.financialKnowledge}
+                  onChange={(e) =>
+                    setSetupData({
+                      ...setupData,
+                      financialKnowledge: e.target.value as FinancialKnowledge,
+                    })
+                  }
+                  className="input-field w-full pr-8 appearance-none bg-white"
+                  style={{
+                    backgroundImage:
+                      'url(\'data:image/svg+xml;utf8,<svg fill="black" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/><path d="M0 0h24v24H0z" fill="none"/></svg>\')',
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "calc(100% - 4px) center",
+                    backgroundSize: "16px",
+                  }}
+                  disabled={isNotNormalAccount}
+                >
+                  {knowledgeOptions.map((knowledge) => (
+                    <option key={knowledge} value={knowledge}>
+                      {knowledge}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-text/70 mb-2">
+                  資本金
+                </label>
+                <input
+                  type="number"
+                  value={setupData.capital || 0}
+                  onChange={(e) =>
+                    setSetupData({
+                      ...setupData,
+                      capital: Number(e.target.value),
+                    })
+                  }
+                  className="input-field w-full"
+                  placeholder="資本金を入力"
+                  disabled={isNotNormalAccount}
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-text/70 mb-2">
+                  事業年度開始年月
+                </label>
+                <p className="text-text font-medium">
+                  {setupData.fiscalYearStartYear || new Date().getFullYear()}年
+                  {setupData.fiscalYearStartMonth}月
+                </p>
               </div>
             </div>
           </div>
@@ -589,10 +528,10 @@ const Settings: React.FC = () => {
 
       <div
         className={`grid grid-cols-1 ${
-          isTaxAccountant ? "" : "xl:grid-cols-2"
+          isNotNormalAccount ? "" : "xl:grid-cols-2"
         } gap-6`}
       >
-        {!isTaxAccountant && (
+        {!isNotNormalAccount && (
           <div className="card">
             <div className="flex items-center space-x-2">
               <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
@@ -679,17 +618,17 @@ const Settings: React.FC = () => {
                             checked={task.enabled}
                             onChange={() => handleTaskToggle(task.id)}
                             className="rounded border-border text-primary focus:ring-primary"
-                            disabled={isTaxAccountant}
+                            disabled={isNotNormalAccount}
                           />
                           <div
                             onDoubleClick={
-                              isTaxAccountant
+                              isNotNormalAccount
                                 ? undefined
                                 : () => startEditingTask(task)
                             }
                             className="cursor-pointer hover:bg-gray-50 p-1 rounded"
                             title={
-                              isTaxAccountant ? "" : "ダブルクリックで編集"
+                              isNotNormalAccount ? "" : "ダブルクリックで編集"
                             }
                           >
                             <p className="font-medium text-text">{task.name}</p>
@@ -701,7 +640,7 @@ const Settings: React.FC = () => {
                         <button
                           onClick={() => handleDeleteTask(task.id)}
                           className="text-error hover:bg-error/10 p-1 rounded"
-                          disabled={isTaxAccountant}
+                          disabled={isNotNormalAccount}
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -723,7 +662,7 @@ const Settings: React.FC = () => {
                     onChange={(e) => setNewTaskName(e.target.value)}
                     className="input-field w-full"
                     placeholder="タスク名を入力"
-                    disabled={isTaxAccountant}
+                    disabled={isNotNormalAccount}
                   />
                   <div className="flex items-center space-x-2">
                     <label className="text-sm text-text/70">毎月</label>
@@ -738,7 +677,7 @@ const Settings: React.FC = () => {
                         backgroundPosition: "calc(100% - 4px) center",
                         backgroundSize: "16px",
                       }}
-                      disabled={isTaxAccountant}
+                      disabled={isNotNormalAccount}
                     >
                       {Array.from({ length: 28 }, (_, i) => (
                         <option key={i + 1} value={i + 1}>
@@ -751,7 +690,7 @@ const Settings: React.FC = () => {
                   <button
                     onClick={handleAddTask}
                     className="btn-secondary flex items-center space-x-2"
-                    disabled={isTaxAccountant}
+                    disabled={isNotNormalAccount}
                   >
                     <Plus className="h-4 w-4" />
                     <span>タスクを追加</span>

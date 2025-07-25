@@ -167,10 +167,8 @@ export interface InitialSetup {
   fiscalYearStartMonth: number;
   fiscalYearStartYear: number; // 事業年度開始年を追加
   industry: Industry;
-  businessExperience: BusinessExperience;
   financialKnowledge: FinancialKnowledge;
-  priorityGoals: PriorityGoal[];
-  longTermGoal: LongTermGoal;
+  capital?: number;
 }
 
 export type CompanySize =
@@ -192,34 +190,11 @@ export type Industry =
   | "不動産"
   | "その他";
 
-export type BusinessExperience =
-  | "1年未満"
-  | "1-3年"
-  | "3-5年"
-  | "5-10年"
-  | "10年以上";
-
 export type FinancialKnowledge =
   | "初心者"
   | "基本レベル"
   | "中級レベル"
   | "上級レベル";
-
-export type PriorityGoal =
-  | "売上向上"
-  | "利益改善"
-  | "コスト削減"
-  | "キャッシュフロー改善"
-  | "投資計画"
-  | "税務対策"
-  | "資金調達"
-  | "事業拡大";
-
-export interface LongTermGoal {
-  targetYear: number;
-  targetNetWorth: number; // 目標純資産
-  description?: string;
-}
 
 // 設定ステップ関連
 export interface SetupStep {

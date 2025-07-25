@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Plus, Trash2, Edit } from "lucide-react";
+import type { CompanySize, Industry, FinancialKnowledge } from "../types";
 
 // Types from TaxAccountantDashboard.tsx
 interface CommentHistory {
@@ -41,14 +42,14 @@ interface UserPerformanceData {
   userName: string;
   email: string;
   password?: string;
-  businessName: string;
+  companyName: string;
   role: "一般ユーザー" | "税理士" | "管理者";
   phoneNumber?: string;
   capital?: number;
-  companySize?: string;
-  industry?: string;
+  companySize?: CompanySize;
+  industry?: Industry;
   businessStartDate?: string;
-  knowledgeLevel?: string;
+  financialKnowledge?: FinancialKnowledge;
   lastUpdated: string;
   fiscalYearEndMonth: number; // 決算月（1-12）
   performance: {
@@ -207,7 +208,7 @@ const initialUsers: UserPerformanceData[] = [
     email: "normalUser1@example.com",
     role: "一般ユーザー",
     lastUpdated: "2023-01-15",
-    businessName: "デモ会社A",
+    companyName: "デモ会社A",
     fiscalYearEndMonth: 3,
     performance: generateDefaultPerformance(),
     hasComment: false,
@@ -222,7 +223,7 @@ const initialUsers: UserPerformanceData[] = [
     email: "normalUser2@example.com",
     role: "一般ユーザー",
     lastUpdated: "2023-02-20",
-    businessName: "デモ会社B",
+    companyName: "デモ会社B",
     fiscalYearEndMonth: 3,
     performance: generateDefaultPerformance(),
     hasComment: false,
@@ -237,7 +238,7 @@ const initialUsers: UserPerformanceData[] = [
     email: "taxUser@example.com",
     role: "税理士",
     lastUpdated: "2023-03-10",
-    businessName: "税理士事務所",
+    companyName: "税理士事務所",
     fiscalYearEndMonth: 12,
     performance: generateDefaultPerformance(),
     hasComment: false,
@@ -252,7 +253,7 @@ const initialUsers: UserPerformanceData[] = [
     email: "adminUser@example.com",
     role: "管理者",
     lastUpdated: "2023-04-01",
-    businessName: "ミエトル株式会社",
+    companyName: "ミエトル株式会社",
     fiscalYearEndMonth: 12,
     performance: generateDefaultPerformance(),
     hasComment: false,
@@ -273,17 +274,32 @@ const UserManagement: React.FC = () => {
   );
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  const industryOptions = [
-    "コンサルティング",
-    "デザイン",
-    "卸売",
-    "マーケティング",
-    "IT",
-    "小売",
-    "飲食",
-    "建設",
+  const companySizeOptions: CompanySize[] = [
+    "個人事業主",
+    "法人（従業員1-5名）",
+    "法人（従業員6-20名）",
+    "法人（従業員21名以上）",
+  ];
+
+  const industryOptions: Industry[] = [
+    "IT・ソフトウェア",
+    "製造業",
+    "小売業",
+    "飲食業",
+    "サービス業",
+    "建設業",
+    "医療・福祉",
+    "教育",
+    "金融・保険",
     "不動産",
     "その他",
+  ];
+
+  const financialKnowledgeOptions: FinancialKnowledge[] = [
+    "初心者",
+    "基本レベル",
+    "中級レベル",
+    "上級レベル",
   ];
 
   const initialNewUserState: Omit<
@@ -300,14 +316,14 @@ const UserManagement: React.FC = () => {
     userName: "",
     email: "",
     password: "",
-    businessName: "",
+    companyName: "",
     role: "一般ユーザー",
     phoneNumber: "",
     capital: 0,
-    companySize: "1-5人",
-    industry: "コンサルティング",
+    companySize: "法人（従業員1-5名）",
+    industry: "IT・ソフトウェア",
     businessStartDate: "",
-    knowledgeLevel: "初心者",
+    financialKnowledge: "初心者",
     fiscalYearEndMonth: 12,
   };
 
@@ -341,8 +357,8 @@ const UserManagement: React.FC = () => {
     if (!newUser.userName) {
       newErrors.userName = "ユーザー名を入力してください。";
     }
-    if (!newUser.businessName) {
-      newErrors.businessName = "会社名を入力してください。";
+    if (!newUser.companyName) {
+      newErrors.companyName = "会社名を入力してください。";
     }
 
     if (!newUser.email) {
@@ -388,8 +404,10 @@ const UserManagement: React.FC = () => {
       industry: newUser.role === "一般ユーザー" ? newUser.industry : undefined,
       businessStartDate:
         newUser.role === "一般ユーザー" ? newUser.businessStartDate : undefined,
-      knowledgeLevel:
-        newUser.role === "一般ユーザー" ? newUser.knowledgeLevel : undefined,
+      financialKnowledge:
+        newUser.role === "一般ユーザー"
+          ? newUser.financialKnowledge
+          : undefined,
     };
 
     setUsers((prevUsers) => [...prevUsers, newUserWithDefaults]);
@@ -438,9 +456,9 @@ const UserManagement: React.FC = () => {
               newUser.role === "一般ユーザー"
                 ? newUser.businessStartDate
                 : undefined,
-            knowledgeLevel:
+            financialKnowledge:
               newUser.role === "一般ユーザー"
-                ? newUser.knowledgeLevel
+                ? newUser.financialKnowledge
                 : undefined,
           };
           if (!newUser.password) {
@@ -647,15 +665,15 @@ const UserManagement: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  name="businessName"
-                  value={newUser.businessName}
+                  name="companyName"
+                  value={newUser.companyName}
                   onChange={handleNewUserChange}
                   autoComplete="off"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
-                {errors.businessName && (
+                {errors.companyName && (
                   <p className="text-red-500 text-xs mt-1">
-                    {errors.businessName}
+                    {errors.companyName}
                   </p>
                 )}
               </div>
@@ -700,7 +718,7 @@ const UserManagement: React.FC = () => {
                   {/* Company Size */}
                   <div>
                     <label className="block text-sm font-medium text-text/70 mb-1">
-                      会社規模
+                      企業規模
                     </label>
                     <select
                       name="companySize"
@@ -708,10 +726,11 @@ const UserManagement: React.FC = () => {
                       onChange={handleNewUserChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     >
-                      <option>1-5人</option>
-                      <option>6-20人</option>
-                      <option>21-50人</option>
-                      <option>51人以上</option>
+                      {companySizeOptions.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -755,14 +774,16 @@ const UserManagement: React.FC = () => {
                       財務・会計の知識レベル
                     </label>
                     <select
-                      name="knowledgeLevel"
-                      value={newUser.knowledgeLevel}
+                      name="financialKnowledge"
+                      value={newUser.financialKnowledge}
                       onChange={handleNewUserChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     >
-                      <option>初心者</option>
-                      <option>中級者</option>
-                      <option>上級者</option>
+                      {financialKnowledgeOptions.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </>
@@ -871,15 +892,15 @@ const UserManagement: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  name="businessName"
-                  value={newUser.businessName}
+                  name="companyName"
+                  value={newUser.companyName}
                   onChange={handleNewUserChange}
                   autoComplete="off"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
-                {errors.businessName && (
+                {errors.companyName && (
                   <p className="text-red-500 text-xs mt-1">
-                    {errors.businessName}
+                    {errors.companyName}
                   </p>
                 )}
               </div>
@@ -932,10 +953,11 @@ const UserManagement: React.FC = () => {
                       onChange={handleNewUserChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     >
-                      <option>1-5人</option>
-                      <option>6-20人</option>
-                      <option>21-50人</option>
-                      <option>51人以上</option>
+                      {companySizeOptions.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -979,14 +1001,16 @@ const UserManagement: React.FC = () => {
                       財務・会計の知識レベル
                     </label>
                     <select
-                      name="knowledgeLevel"
-                      value={newUser.knowledgeLevel}
+                      name="financialKnowledge"
+                      value={newUser.financialKnowledge}
                       onChange={handleNewUserChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     >
-                      <option>初心者</option>
-                      <option>中級者</option>
-                      <option>上級者</option>
+                      {financialKnowledgeOptions.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 </>
