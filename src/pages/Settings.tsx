@@ -800,7 +800,7 @@ const Settings: React.FC = () => {
             </div>
             <div>
               <label className="block text-sm text-text/70 mb-1">
-                電話番号(ハイフン無し)
+                電話番号
               </label>
               <input
                 type="tel"
