@@ -48,21 +48,32 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    // role="1"の場合、クライアント管理画面と設定画面以外にはアクセスできない
-    if (
-      userRole === "1" &&
-      location.pathname !== "/taxAccountant" &&
-      location.pathname !== "/settings"
-    ) {
-      navigate("/taxAccountant", { replace: true });
-    }
-    // role="2"の場合、ユーザー管理画面と設定画面以外にはアクセスできない
-    if (
-      userRole === "2" &&
-      location.pathname !== "/userManagement" &&
-      location.pathname !== "/settings"
-    ) {
-      navigate("/userManagement", { replace: true });
+    if (userRole === null) return; // roleがまだ読み込まれていない場合は何もしない
+
+    if (userRole === "0") {
+      // role="0"の場合、ユーザー管理とクライアント管理にはアクセスできない
+      if (
+        location.pathname === "/userManagement" ||
+        location.pathname === "/taxAccountant"
+      ) {
+        navigate("/", { replace: true });
+      }
+    } else if (userRole === "1") {
+      // role="1"の場合、クライアント管理画面と設定画面以外にはアクセスできない
+      if (
+        location.pathname !== "/taxAccountant" &&
+        location.pathname !== "/settings"
+      ) {
+        navigate("/taxAccountant", { replace: true });
+      }
+    } else if (userRole === "2") {
+      // role="2"の場合、ユーザー管理画面と設定画面以外にはアクセスできない
+      if (
+        location.pathname !== "/userManagement" &&
+        location.pathname !== "/settings"
+      ) {
+        navigate("/userManagement", { replace: true });
+      }
     }
   }, [userRole, location.pathname, navigate]);
 
