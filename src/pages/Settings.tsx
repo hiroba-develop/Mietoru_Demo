@@ -63,7 +63,7 @@ const DEMO_TASKS: Task[] = [
 
 const Settings: React.FC = () => {
   const { user, updateUserSetup } = useAuth();
-  const isTaxAccountant = user?.role === "1";
+  const isTaxAccountant = user?.role === "1" || user?.role === "2";
 
   const [tasks, setTasks] = useState<Task[]>(DEMO_TASKS);
   const [newTaskName, setNewTaskName] = useState("");
@@ -796,12 +796,11 @@ const Settings: React.FC = () => {
                   setUserInfo({ ...userInfo, email: e.target.value })
                 }
                 className="input-field w-full"
-                disabled={isTaxAccountant}
               />
             </div>
             <div>
               <label className="block text-sm text-text/70 mb-1">
-                電話番号
+                電話番号(ハイフン無し)
               </label>
               <input
                 type="tel"

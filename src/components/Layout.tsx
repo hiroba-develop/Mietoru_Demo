@@ -56,6 +56,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     ) {
       navigate("/taxAccountant", { replace: true });
     }
+    // role="2"の場合、ユーザー管理画面と設定画面以外にはアクセスできない
+    if (
+      userRole === "2" &&
+      location.pathname !== "/userManagement" &&
+      location.pathname !== "/settings"
+    ) {
+      navigate("/userManagement", { replace: true });
+    }
   }, [userRole, location.pathname, navigate]);
 
   const navigation = [
@@ -86,6 +94,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       icon: UserCheck,
       disabled: false,
       roleRequired: "1", // role="1"の場合のみ表示
+    },
+    {
+      name: "ユーザー管理",
+      href: "/userManagement",
+      icon: UserCheck,
+      disabled: false,
+      roleRequired: "2", // role="2"の場合のみ表示
     },
     {
       name: "ランキング・表彰",

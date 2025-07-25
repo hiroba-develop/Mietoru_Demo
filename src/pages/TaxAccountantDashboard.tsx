@@ -16,7 +16,6 @@ import {
   Map,
   PlusCircle,
   XCircle,
-  Plus,
 } from "lucide-react";
 
 interface CommentHistory {
@@ -59,6 +58,8 @@ interface UserPerformanceData {
   email: string;
   password?: string;
   businessName: string;
+  role: "一般ユーザー" | "税理士";
+  phoneNumber?: string;
   capital?: number;
   companySize?: string;
   industry?: string;
@@ -200,28 +201,6 @@ const generateDefaultRoadmap = (): RoadmapYear[] => {
   return roadmap;
 };
 
-const generateDefaultPerformance = (): {
-  currentMonth: MonthlyPerformance;
-  lastMonth: MonthlyPerformance;
-  twoMonthsAgo: MonthlyPerformance;
-} => {
-  const zeroMetrics: PerformanceMetrics = {
-    target: 0,
-    actual: 0,
-    achievementRate: 0,
-  };
-  const zeroMonthly: MonthlyPerformance = {
-    sales: zeroMetrics,
-    grossProfit: zeroMetrics,
-    operatingProfit: zeroMetrics,
-  };
-  return {
-    currentMonth: zeroMonthly,
-    lastMonth: zeroMonthly,
-    twoMonthsAgo: zeroMonthly,
-  };
-};
-
 // デモ用のクライアントデータ
 const DEMO_USERS: UserPerformanceData[] = [
   {
@@ -229,6 +208,8 @@ const DEMO_USERS: UserPerformanceData[] = [
     userName: "田中 太郎",
     email: "tanaka@example.com",
     businessName: "田中コンサルティング",
+    role: "一般ユーザー",
+    phoneNumber: "090-1234-5678",
     capital: 10000000,
     companySize: "6-20人",
     industry: "コンサルティング",
@@ -306,6 +287,8 @@ const DEMO_USERS: UserPerformanceData[] = [
     userName: "佐藤 花子",
     email: "sato@example.com",
     businessName: "佐藤デザイン事務所",
+    role: "一般ユーザー",
+    phoneNumber: "080-1111-2222",
     capital: 3000000,
     companySize: "1-5人",
     industry: "デザイン",
@@ -369,6 +352,8 @@ const DEMO_USERS: UserPerformanceData[] = [
     userName: "山田 一郎",
     email: "yamada@example.com",
     businessName: "山田商事",
+    role: "一般ユーザー",
+    phoneNumber: "",
     capital: 50000000,
     companySize: "21-50人",
     industry: "卸売",
@@ -405,9 +390,10 @@ const DEMO_USERS: UserPerformanceData[] = [
         },
       },
     },
-    hasComment: false,
-    comment: "",
-    commentDate: "",
+    hasComment: true,
+    comment:
+      "夏の繁忙期に向けて準備を進めましょう。在庫管理と資金繰りに注意が必要です。",
+    commentDate: "2025-05-10",
     commentHistory: [
       {
         id: "comment007",
@@ -424,6 +410,8 @@ const DEMO_USERS: UserPerformanceData[] = [
     userName: "鈴木 美咲",
     email: "suzuki@example.com",
     businessName: "鈴木マーケティング",
+    role: "一般ユーザー",
+    phoneNumber: "",
     capital: 5000000,
     companySize: "1-5人",
     industry: "マーケティング",
@@ -463,15 +451,7 @@ const DEMO_USERS: UserPerformanceData[] = [
     hasComment: false,
     comment: "",
     commentDate: "",
-    commentHistory: [
-      {
-        id: "comment008",
-        comment:
-          "春のキャンペーンが好評でした。秋に向けて新しい戦略を練りましょう。",
-        date: "2025-04-25",
-        yearMonth: "2025-04",
-      },
-    ],
+    commentHistory: [],
     roadmap: generateDefaultRoadmap(),
   },
   {
@@ -479,6 +459,8 @@ const DEMO_USERS: UserPerformanceData[] = [
     userName: "高橋 健太",
     email: "takahashi@example.com",
     businessName: "高橋IT開発",
+    role: "一般ユーザー",
+    phoneNumber: "",
     capital: 20000000,
     companySize: "6-20人",
     industry: "IT",
@@ -545,6 +527,7 @@ const TaxAccountantDashboard: React.FC = () => {
   );
   const [users, setUsers] = useState<UserPerformanceData[]>(DEMO_USERS);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortOrder, setSortOrder] = useState("name_asc");
   const [currentComment, setCurrentComment] = useState("");
   const [isCommentSaving, setIsCommentSaving] = useState(false);
   const [showCommentHistory, setShowCommentHistory] = useState(false);
@@ -563,73 +546,6 @@ const TaxAccountantDashboard: React.FC = () => {
 
   const [editableRoadmap, setEditableRoadmap] = useState<RoadmapYear[]>([]);
   const [openYear, setOpenYear] = useState<number | null>(null);
-  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
-
-  const industryOptions = [
-    "コンサルティング",
-    "デザイン",
-    "卸売",
-    "マーケティング",
-    "IT",
-    "小売",
-    "飲食",
-    "建設",
-    "不動産",
-    "その他",
-  ];
-
-  const initialNewUserState = {
-    userName: "",
-    email: "",
-    password: "",
-    businessName: "",
-    capital: 0,
-    companySize: "1-5人",
-    industry: "コンサルティング",
-    businessStartDate: "",
-    knowledgeLevel: "初心者",
-    fiscalYearEndMonth: 12,
-  };
-
-  const [newUser, setNewUser] = useState(initialNewUserState);
-
-  const handleNewUserChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setNewUser((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleAddNewUser = () => {
-    if (
-      !newUser.email ||
-      !newUser.userName ||
-      !newUser.password ||
-      !newUser.businessName
-    ) {
-      alert(
-        "必須項目（メールアドレス、パスワード、ユーザー名、会社名）を入力してください。"
-      );
-      return;
-    }
-
-    const newUserWithDefaults: UserPerformanceData = {
-      userId: `user_${Date.now()}`,
-      lastUpdated: new Date().toISOString().split("T")[0],
-      performance: generateDefaultPerformance(),
-      hasComment: false,
-      comment: "",
-      commentDate: "",
-      commentHistory: [],
-      roadmap: generateDefaultRoadmap(),
-      ...newUser,
-      capital: Number(newUser.capital), // ensure capital is a number
-    };
-
-    setUsers((prevUsers) => [...prevUsers, newUserWithDefaults]);
-    setIsAddUserModalOpen(false);
-    setNewUser(initialNewUserState);
-  };
 
   // selectedUser が変更されたときにロードマップ編集用のstateを更新
   useEffect(() => {
@@ -641,6 +557,25 @@ const TaxAccountantDashboard: React.FC = () => {
     setOpenYear(null); // ユーザー切り替え時にアコーディオンを閉じる
   }, [selectedUser]);
 
+  const getCardBorderClass = (user: UserPerformanceData) => {
+    if (!user.hasComment || !user.commentDate) {
+      return "";
+    }
+
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    oneMonthAgo.setHours(0, 0, 0, 0);
+
+    const commentDate = new Date(user.commentDate);
+    commentDate.setHours(0, 0, 0, 0);
+
+    if (commentDate < oneMonthAgo) {
+      return "border-l-4 border-l-red-500";
+    }
+
+    return "border-l-4 border-l-green-500";
+  };
+
   // フィルタリングとソート
   const filteredAndSortedUsers = users
     .filter(
@@ -648,7 +583,37 @@ const TaxAccountantDashboard: React.FC = () => {
         user.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.businessName.toLowerCase().includes(searchTerm.toLowerCase())
     )
-    .sort((a, b) => a.userName.localeCompare(b.userName));
+    .sort((a, b) => {
+      switch (sortOrder) {
+        case "date_asc": {
+          const aDate = a.commentDate
+            ? new Date(a.commentDate).getTime()
+            : Infinity;
+          const bDate = b.commentDate
+            ? new Date(b.commentDate).getTime()
+            : Infinity;
+          if (aDate === bDate) {
+            return a.userName.localeCompare(b.userName);
+          }
+          return aDate - bDate;
+        }
+        case "date_desc": {
+          const aDate = a.commentDate
+            ? new Date(a.commentDate).getTime()
+            : -Infinity;
+          const bDate = b.commentDate
+            ? new Date(b.commentDate).getTime()
+            : -Infinity;
+          if (aDate === bDate) {
+            return a.userName.localeCompare(b.userName);
+          }
+          return bDate - aDate;
+        }
+        case "name_asc":
+        default:
+          return a.userName.localeCompare(b.userName);
+      }
+    });
 
   const formatCurrency = (amount: number) => {
     return (amount / 10000).toFixed(0) + "万円";
@@ -1779,13 +1744,6 @@ const TaxAccountantDashboard: React.FC = () => {
           クライアント管理 (デモモード)
         </h1>
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => setIsAddUserModalOpen(true)}
-            className="flex items-center px-4 py-2 text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            ユーザー追加
-          </button>
           <div className="text-sm text-text/70">
             登録ユーザー数: {users.length}名
             {isLoading && <span className="ml-2">(読み込み中...)</span>}
@@ -1816,7 +1774,15 @@ const TaxAccountantDashboard: React.FC = () => {
               </div>
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-text/70">並び順:</span>
-                <span>名前順</span>
+                <select
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value)}
+                  className="pl-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option value="name_asc">名前順</option>
+                  <option value="date_asc">最終アドバイス日順(昇順)</option>
+                  <option value="date_desc">最終アドバイス日順(降順)</option>
+                </select>
               </div>
             </div>
           </div>
@@ -1826,9 +1792,9 @@ const TaxAccountantDashboard: React.FC = () => {
             {filteredAndSortedUsers.map((user) => (
               <div
                 key={user.userId}
-                className={`card hover:shadow-lg transition-shadow cursor-pointer ${
-                  user.hasComment ? "border-l-4 border-l-green-500" : ""
-                }`}
+                className={`card hover:shadow-lg transition-shadow cursor-pointer ${getCardBorderClass(
+                  user
+                )}`}
                 onClick={() => handleUserSelect(user)}
               >
                 <div className="flex items-center justify-between mb-4">
@@ -1849,16 +1815,6 @@ const TaxAccountantDashboard: React.FC = () => {
                       <p className="text-sm text-text/70">
                         {user.businessName}
                       </p>
-                      <p className="text-sm text-text/70">
-                        {user.hasComment && (
-                          <div className="flex items-center space-x-1 text-green-600">
-                            <CheckCircle className="h-4 w-4" />
-                            <span className="text-xs font-medium">
-                              コメント済み
-                            </span>
-                          </div>
-                        )}
-                      </p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -1876,7 +1832,9 @@ const TaxAccountantDashboard: React.FC = () => {
 
                   {user.hasComment && (
                     <div className="flex justify-between items-center">
-                      <span className="text-sm text-text/70">アドバイス日</span>
+                      <span className="text-sm text-text/70">
+                        最終アドバイス日
+                      </span>
                       <span className="text-sm text-green-600 font-medium">
                         {user.commentDate.includes("T")
                           ? user.commentDate.replace("T", " ").split(".")[0]
@@ -1898,176 +1856,6 @@ const TaxAccountantDashboard: React.FC = () => {
             </div>
           )}
         </>
-      )}
-
-      {/* 新規ユーザー追加モーダル */}
-      {isAddUserModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 sm:p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-6">新規ユーザー追加</h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-              {/* Email */}
-              <div>
-                <label className="block text-sm font-medium text-text/70 mb-1">
-                  メールアドレス *
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={newUser.email}
-                  onChange={handleNewUserChange}
-                  autoComplete="off"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                />
-              </div>
-
-              {/* Password */}
-              <div>
-                <label className="block text-sm font-medium text-text/70 mb-1">
-                  パスワード *
-                </label>
-                <input
-                  type="text"
-                  name="password"
-                  value={newUser.password}
-                  onChange={handleNewUserChange}
-                  autoComplete="off"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                />
-              </div>
-
-              {/* User Name */}
-              <div>
-                <label className="block text-sm font-medium text-text/70 mb-1">
-                  ユーザー名 *
-                </label>
-                <input
-                  type="text"
-                  name="userName"
-                  value={newUser.userName}
-                  onChange={handleNewUserChange}
-                  autoComplete="off"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                />
-              </div>
-
-              {/* Company Name */}
-              <div>
-                <label className="block text-sm font-medium text-text/70 mb-1">
-                  会社名 *
-                </label>
-                <input
-                  type="text"
-                  name="businessName"
-                  value={newUser.businessName}
-                  onChange={handleNewUserChange}
-                  autoComplete="off"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                />
-              </div>
-
-              {/* Capital */}
-              <div>
-                <label className="block text-sm font-medium text-text/70 mb-1">
-                  資本金 (円)
-                </label>
-                <input
-                  type="number"
-                  name="capital"
-                  value={newUser.capital}
-                  onChange={handleNewUserChange}
-                  autoComplete="off"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                />
-              </div>
-
-              {/* Company Size */}
-              <div>
-                <label className="block text-sm font-medium text-text/70 mb-1">
-                  会社規模
-                </label>
-                <select
-                  name="companySize"
-                  value={newUser.companySize}
-                  onChange={handleNewUserChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  <option>1-5人</option>
-                  <option>6-20人</option>
-                  <option>21-50人</option>
-                  <option>51人以上</option>
-                </select>
-              </div>
-
-              {/* Industry */}
-              <div>
-                <label className="block text-sm font-medium text-text/70 mb-1">
-                  業界
-                </label>
-                <select
-                  name="industry"
-                  value={newUser.industry}
-                  onChange={handleNewUserChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  {industryOptions.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Business Start Date */}
-              <div>
-                <label className="block text-sm font-medium text-text/70 mb-1">
-                  事業開始年月
-                </label>
-                <input
-                  type="month"
-                  name="businessStartDate"
-                  value={newUser.businessStartDate}
-                  onChange={handleNewUserChange}
-                  autoComplete="off"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                />
-              </div>
-
-              {/* Knowledge Level */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-text/70 mb-1">
-                  財務・会計の知識レベル
-                </label>
-                <select
-                  name="knowledgeLevel"
-                  value={newUser.knowledgeLevel}
-                  onChange={handleNewUserChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  <option>初心者</option>
-                  <option>中級者</option>
-                  <option>上級者</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-4 mt-8">
-              <button
-                onClick={() => setIsAddUserModalOpen(false)}
-                className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                キャンセル
-              </button>
-              <button
-                onClick={handleAddNewUser}
-                className="px-4 py-2 text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors"
-              >
-                追加
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );

@@ -25,6 +25,13 @@ const DEMO_USERS = [
     settingFlg: "1", // 設定完了済み
     role: "1", // 税理士ユーザー
   },
+  {
+    email: "adminUser@example.com",
+    password: "adminUserPass",
+    userId: "admin-user-001",
+    settingFlg: "1", // 設定完了済み
+    role: "2", // 管理者ユーザー
+  },
 ];
 
 const Login: React.FC = () => {
@@ -106,6 +113,10 @@ const Login: React.FC = () => {
             </div>
             <div>
               <strong>税理士ユーザー:</strong> taxUser@example.com / taxUserPass
+            </div>
+            <div>
+              <strong>管理者ユーザー:</strong> adminUser@example.com /
+              adminUserPass
             </div>
           </div>
         </div>
