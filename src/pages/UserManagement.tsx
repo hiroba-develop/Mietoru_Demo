@@ -267,6 +267,10 @@ const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<UserPerformanceData[]>(initialUsers);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserPerformanceData | null>(
+    null
+  );
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const industryOptions = [
@@ -331,7 +335,7 @@ const UserManagement: React.FC = () => {
     setErrors({});
   };
 
-  const validateForm = () => {
+  const validateForm = (isEditMode = false) => {
     const newErrors: { [key: string]: string } = {};
 
     if (!newUser.userName) {
@@ -347,9 +351,9 @@ const UserManagement: React.FC = () => {
       newErrors.email = "メールアドレスに「@」は含めないでください。";
     }
 
-    if (!newUser.password) {
+    if (!isEditMode && !newUser.password) {
       newErrors.password = "パスワードを入力してください。";
-    } else if (newUser.password.length <= 8) {
+    } else if (newUser.password && newUser.password.length <= 8) {
       newErrors.password = "パスワードは9文字以上で入力してください。";
     }
 
@@ -390,6 +394,64 @@ const UserManagement: React.FC = () => {
 
     setUsers((prevUsers) => [...prevUsers, newUserWithDefaults]);
     closeModal();
+  };
+
+  const handleOpenEditModal = (user: UserPerformanceData) => {
+    setEditingUser(user);
+    setNewUser({
+      ...user,
+      password: "",
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingUser(null);
+    setNewUser(initialNewUserState);
+    setErrors({});
+  };
+
+  const handleUpdateUser = () => {
+    if (!editingUser) return;
+
+    if (!validateForm(true)) {
+      return;
+    }
+
+    setUsers((prevUsers) =>
+      prevUsers.map((user) => {
+        if (user.userId === editingUser.userId) {
+          const updatedUser = {
+            ...user,
+            ...newUser,
+            lastUpdated: new Date().toISOString().split("T")[0],
+            capital:
+              newUser.role === "一般ユーザー"
+                ? Number(newUser.capital)
+                : undefined,
+            companySize:
+              newUser.role === "一般ユーザー" ? newUser.companySize : undefined,
+            industry:
+              newUser.role === "一般ユーザー" ? newUser.industry : undefined,
+            businessStartDate:
+              newUser.role === "一般ユーザー"
+                ? newUser.businessStartDate
+                : undefined,
+            knowledgeLevel:
+              newUser.role === "一般ユーザー"
+                ? newUser.knowledgeLevel
+                : undefined,
+          };
+          if (!newUser.password) {
+            delete (updatedUser as Partial<UserPerformanceData>).password;
+          }
+          return updatedUser;
+        }
+        return user;
+      })
+    );
+    closeEditModal();
   };
 
   const filteredUsers = users.filter(
@@ -447,7 +509,7 @@ const UserManagement: React.FC = () => {
                 メールアドレス
               </th>
               <th scope="col" className="px-6 py-3">
-                役割
+                権限
               </th>
               <th scope="col" className="px-6 py-3">
                 登録日
@@ -482,7 +544,10 @@ const UserManagement: React.FC = () => {
                 </td>
                 <td className="px-6 py-4">{user.lastUpdated}</td>
                 <td className="px-6 py-4 flex justify-center items-center space-x-2">
-                  <button className="p-2 text-gray-500 hover:text-primary transition-colors">
+                  <button
+                    onClick={() => handleOpenEditModal(user)}
+                    className="p-2 text-gray-500 hover:text-primary transition-colors"
+                  >
                     <Edit className="h-4 w-4" />
                   </button>
                   <button
@@ -716,6 +781,230 @@ const UserManagement: React.FC = () => {
                 className="px-4 py-2 text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors"
               >
                 追加
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ユーザー編集モーダル */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 sm:p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-6">ユーザー情報編集</h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+              {/* Role */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  権限 *
+                </label>
+                <select
+                  name="role"
+                  value={newUser.role}
+                  onChange={handleNewUserChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                >
+                  <option>一般ユーザー</option>
+                  <option>税理士</option>
+                  <option>管理者</option>
+                </select>
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  メールアドレス *
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={newUser.email}
+                  onChange={handleNewUserChange}
+                  autoComplete="off"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+                {errors.email && (
+                  <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                )}
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  パスワード (変更する場合のみ入力)
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  value={newUser.password}
+                  onChange={handleNewUserChange}
+                  autoComplete="new-password"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+                {errors.password && (
+                  <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+                )}
+              </div>
+
+              {/* User Name */}
+              <div>
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  ユーザー名 *
+                </label>
+                <input
+                  type="text"
+                  name="userName"
+                  value={newUser.userName}
+                  onChange={handleNewUserChange}
+                  autoComplete="off"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+                {errors.userName && (
+                  <p className="text-red-500 text-xs mt-1">{errors.userName}</p>
+                )}
+              </div>
+
+              {/* Company Name */}
+              <div>
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  会社名 *
+                </label>
+                <input
+                  type="text"
+                  name="businessName"
+                  value={newUser.businessName}
+                  onChange={handleNewUserChange}
+                  autoComplete="off"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+                {errors.businessName && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.businessName}
+                  </p>
+                )}
+              </div>
+
+              {/* Phone Number */}
+              <div>
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  電話番号(ハイフン無し)
+                </label>
+                <input
+                  type="tel"
+                  name="phoneNumber"
+                  value={newUser.phoneNumber}
+                  onChange={handleNewUserChange}
+                  autoComplete="off"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                />
+                {errors.phoneNumber && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.phoneNumber}
+                  </p>
+                )}
+              </div>
+
+              {newUser.role === "一般ユーザー" && (
+                <>
+                  {/* Capital */}
+                  <div>
+                    <label className="block text-sm font-medium text-text/70 mb-1">
+                      資本金 (円)
+                    </label>
+                    <input
+                      type="number"
+                      name="capital"
+                      value={newUser.capital}
+                      onChange={handleNewUserChange}
+                      autoComplete="off"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* Company Size */}
+                  <div>
+                    <label className="block text-sm font-medium text-text/70 mb-1">
+                      会社規模
+                    </label>
+                    <select
+                      name="companySize"
+                      value={newUser.companySize}
+                      onChange={handleNewUserChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    >
+                      <option>1-5人</option>
+                      <option>6-20人</option>
+                      <option>21-50人</option>
+                      <option>51人以上</option>
+                    </select>
+                  </div>
+
+                  {/* Industry */}
+                  <div>
+                    <label className="block text-sm font-medium text-text/70 mb-1">
+                      業界
+                    </label>
+                    <select
+                      name="industry"
+                      value={newUser.industry}
+                      onChange={handleNewUserChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    >
+                      {industryOptions.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Business Start Date */}
+                  <div>
+                    <label className="block text-sm font-medium text-text/70 mb-1">
+                      事業開始年月
+                    </label>
+                    <input
+                      type="month"
+                      name="businessStartDate"
+                      value={newUser.businessStartDate}
+                      onChange={handleNewUserChange}
+                      autoComplete="off"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* Knowledge Level */}
+                  <div>
+                    <label className="block text-sm font-medium text-text/70 mb-1">
+                      財務・会計の知識レベル
+                    </label>
+                    <select
+                      name="knowledgeLevel"
+                      value={newUser.knowledgeLevel}
+                      onChange={handleNewUserChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    >
+                      <option>初心者</option>
+                      <option>中級者</option>
+                      <option>上級者</option>
+                    </select>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-4 mt-8">
+              <button
+                onClick={closeEditModal}
+                className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={handleUpdateUser}
+                className="px-4 py-2 text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                更新
               </button>
             </div>
           </div>
