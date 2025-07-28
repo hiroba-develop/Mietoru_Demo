@@ -390,26 +390,7 @@ const Settings: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm text-text/70 mb-2">
-                  会社名（任意）
-                </label>
-                <input
-                  type="text"
-                  value={setupData.companyName || ""}
-                  onChange={(e) =>
-                    setSetupData({
-                      ...setupData,
-                      companyName: e.target.value,
-                    })
-                  }
-                  className="input-field w-full"
-                  placeholder="会社名を入力してください（任意）"
-                  disabled={isNotNormalAccount}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-text/70 mb-2">
-                  企業規模
+                  会社規模
                 </label>
                 <select
                   value={setupData.companySize}
@@ -711,6 +692,23 @@ const Settings: React.FC = () => {
 
           <div className="space-y-4">
             <div>
+              <label className="block text-sm text-text/70 mb-2">会社名</label>
+              <input
+                type="text"
+                value={setupData.companyName || ""}
+                onChange={(e) =>
+                  setSetupData({
+                    ...setupData,
+                    companyName: e.target.value,
+                  })
+                }
+                className="input-field w-full"
+                placeholder="会社名を入力してください"
+                disabled={isNotNormalAccount}
+              />
+            </div>
+
+            <div>
               <label className="block text-sm text-text/70 mb-1">お名前</label>
               <input
                 type="text"
@@ -734,25 +732,6 @@ const Settings: React.FC = () => {
                 onChange={(e) =>
                   setUserInfo({ ...userInfo, email: e.target.value })
                 }
-                className="input-field w-full"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-text/70 mb-1">
-                電話番号
-              </label>
-              <input
-                type="tel"
-                value={userInfo.phone}
-                onChange={(e) => {
-                  setUserInfo({ ...userInfo, phone: e.target.value });
-                  if (setupData) {
-                    setSetupData({
-                      ...setupData,
-                      phoneNumber: e.target.value,
-                    });
-                  }
-                }}
                 className="input-field w-full"
               />
             </div>

@@ -68,7 +68,6 @@ export interface UserProfile {
   name: string;
   email: string;
   company: string;
-  phone: string;
   createdAt: Date;
   lastLogin: Date;
 }
@@ -195,6 +194,92 @@ export type FinancialKnowledge =
   | "基本レベル"
   | "中級レベル"
   | "上級レベル";
+
+export type UserRole =
+  | "一般ユーザー"
+  | "管理者ユーザー"
+  | "プラットフォームオーナー";
+
+export interface CommentHistory {
+  id: string;
+  comment: string;
+  date: string;
+  yearMonth: string; // YYYY-MM形式
+}
+
+export interface PerformanceMetrics {
+  target: number;
+  actual: number;
+  achievementRate: number;
+}
+
+export interface MonthlyPerformance {
+  sales: PerformanceMetrics;
+  grossProfit: PerformanceMetrics;
+  operatingProfit: PerformanceMetrics;
+}
+
+export interface YoYPerformance {
+  sales: number;
+  grossProfit: number;
+  operatingProfit: number;
+}
+
+export interface RoadmapAdvice {
+  title: string;
+  advice: string;
+  details: string[];
+}
+
+export interface RoadmapQuarter {
+  [quarter: number]: RoadmapAdvice;
+}
+
+export interface RoadmapYear {
+  year: number;
+  quarters: RoadmapQuarter;
+}
+
+export interface SalesTarget {
+  year: number;
+  targetAmount: number;
+}
+
+export interface UserPerformanceData {
+  userId: string;
+  userName: string;
+  email: string;
+  password?: string;
+  companyName: string; // businessName を companyName に統一
+  role: UserRole;
+  phoneNumber?: string;
+  capital?: number;
+  companySize?: CompanySize;
+  industry?: Industry;
+  businessStartDate?: string;
+  financialKnowledge?: FinancialKnowledge; // knowledgeLevel を financialKnowledge に統一
+  lastUpdated: string;
+  fiscalYearEndMonth: number; // 決算月（1-12）
+  performance: {
+    currentMonth: MonthlyPerformance;
+    lastMonth: MonthlyPerformance;
+    twoMonthsAgo: MonthlyPerformance;
+    yoyCurrentMonth?: YoYPerformance;
+    yoyLastMonth?: YoYPerformance;
+    yoyTwoMonthsAgo?: YoYPerformance;
+  };
+  hasComment: boolean;
+  comment: string;
+  commentDate: string;
+  goodPoint?: string;
+  cautionPoint?: string;
+  badPoint?: string;
+  commentHistory: CommentHistory[];
+  roadmap: RoadmapYear[];
+  salesTargets: SalesTarget[];
+  grossProfitMarginTarget?: number;
+  operatingProfitMarginTarget?: number;
+}
 
 // 設定ステップ関連
 export interface SetupStep {

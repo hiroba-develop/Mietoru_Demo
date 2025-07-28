@@ -1,7 +1,37 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import type { AuthUser, InitialSetup } from "../types";
-import { jwtDecode } from "jwt-decode";
+
+// 管理者・プラットフォームオーナーが担当するユーザーのデモデータ
+const DEMO_MANAGED_USERS: AuthUser[] = [
+  {
+    id: "user-A",
+    email: "user-a@example.com",
+    name: "クライアントA",
+    isSetupComplete: true,
+    createdAt: new Date(),
+    lastLogin: new Date(),
+    role: "0",
+  },
+  {
+    id: "user-B",
+    email: "user-b@example.com",
+    name: "クライアントB",
+    isSetupComplete: true,
+    createdAt: new Date(),
+    lastLogin: new Date(),
+    role: "0",
+  },
+  {
+    id: "user-C",
+    email: "user-c@example.com",
+    name: "クライアントC (未設定)",
+    isSetupComplete: false,
+    createdAt: new Date(),
+    lastLogin: new Date(),
+    role: "0",
+  },
+];
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -16,33 +46,17 @@ interface AuthContextType {
     settingFlg?: string,
     role?: string
   ) => Promise<void>;
-  loginWithGoogleCredential: (
-    credential: string,
-    settingFlg?: string,
-    userId?: string,
-    role?: string
-  ) => void;
   completeSetup: (setupData: InitialSetup) => void;
   updateUserSetup: (setupData: Partial<InitialSetup>) => void;
   loadUserSetup: () => Promise<void>;
   logout: () => void;
+  // ユーザー切り替え機能
+  managedUsers: AuthUser[];
+  selectedUser: AuthUser | null;
+  switchUser: (userId: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// デモ用の設定データ
-const DEMO_USER_SETTINGS = {
-  name: "デモユーザー",
-  company: "デモ株式会社",
-  telNo: "03-1234-5678",
-  companySize: 2, // 法人（従業員1-5名）
-  industry: 1, // IT・ソフトウェア
-  fiscalYearStartYear: 2023,
-  fiscalYearStartMonth: 4,
-  totalAssets: 5000000, // 500万円
-  businessExperience: 2, // 1-3年
-  financialKnowledge: 2, // 基本レベル
-};
 
 // cookieを操作するためのユーティリティ関数
 const setCookie = (name: string, value: string, hours: number = 3) => {
@@ -84,12 +98,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [shouldRedirectToLogin, setShouldRedirectToLogin] = useState(false);
   const [shouldRedirectToSetup, setShouldRedirectToSetup] = useState(false);
+  const [managedUsers, setManagedUsers] = useState<AuthUser[]>([]);
+  const [selectedUser, setSelectedUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
     // 保存された認証状態を復元
     const userId = getCookie("userId");
     const settingFlg = getCookie("settingFlg");
     const role = getCookie("role");
+    const selectedUserId = getCookie("selectedUserId");
 
     // cookieに必要な情報がない場合は、必ずlogin画面に遷移
     if (!userId || !settingFlg) {
@@ -104,7 +121,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userToSet: AuthUser = {
         id: userId,
         email: "demo@example.com", // デフォルト値
-        name: "デモユーザー", // デフォルト値
+        name: "デモ管理者", // デフォルト値
         isSetupComplete: isSetupComplete,
         createdAt: new Date(),
         lastLogin: new Date(),
@@ -112,6 +129,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       };
 
       setUser(userToSet);
+
+      // 管理者/プラットフォームオーナーの場合、管理対象ユーザーを設定
+      if (role === "1" || role === "2") {
+        setManagedUsers(DEMO_MANAGED_USERS);
+
+        // 以前選択したユーザーがいれば復元、いなければリストの先頭
+        const initialUser =
+          DEMO_MANAGED_USERS.find((u) => u.id === selectedUserId) ||
+          DEMO_MANAGED_USERS[0];
+        setSelectedUser(initialUser);
+        if (!selectedUserId) {
+          setCookie("selectedUserId", initialUser.id);
+        }
+      } else {
+        // 通常ユーザーは自分自身を選択中にする
+        setSelectedUser(userToSet);
+      }
 
       // cookieの「settingFlg」が"0"の場合は必ずセットアップ画面に遷移
       if (settingFlg === "0") {
@@ -149,7 +183,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const demoUser: AuthUser = {
         id: userId,
         email: email,
-        name: "デモユーザー",
+        name: role === "1" || role === "2" ? "デモ管理者" : "デモユーザー",
         isSetupComplete: isSetupComplete,
         createdAt: new Date(),
         lastLogin: new Date(),
@@ -167,6 +201,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (role) {
           setCookie("role", role);
         }
+
+        // 管理者の場合は管理ユーザー情報をセットアップ
+        if (role === "1" || role === "2") {
+          setManagedUsers(DEMO_MANAGED_USERS);
+          const initialUser = DEMO_MANAGED_USERS[0];
+          setSelectedUser(initialUser);
+          setCookie("selectedUserId", initialUser.id);
+        } else {
+          // 通常ユーザーは自分自身を選択中に
+          setSelectedUser(demoUser);
+        }
       }
     } catch (error) {
       throw new Error("ログインに失敗しました");
@@ -175,58 +220,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  /**
-   * Google OAuth Credential (JWT) を直接処理してログインする。
-   * @param credential Google ID Credential JWT
-   * @param settingFlg 設定フラグ（1:設定済み、0:未設定）
-   * @param userId ユーザーID
-   * @param role ユーザーロール
-   */
-  const loginWithGoogleCredential = (
-    credential: string,
-    settingFlg?: string,
-    userId?: string,
-    role?: string
-  ): void => {
-    try {
-      const decoded: any = jwtDecode(credential);
-
-      // userIdを取得、なければGoogleのsubを使用
-      const userIdToUse = userId || decoded.sub;
-
-      // settingFlgに基づいてisSetupCompleteを決定
-      const isSetupComplete = settingFlg === "1";
-
-      const googleUser: AuthUser = {
-        id: userIdToUse,
-        email: decoded.email,
-        name: decoded.name,
-        avatar: decoded.picture,
-        isSetupComplete: isSetupComplete,
-        createdAt: new Date(),
-        lastLogin: new Date(),
-        role: role || undefined,
-      };
-
-      setUser(googleUser);
-      setShouldRedirectToLogin(false);
-      setShouldRedirectToSetup(false);
-
-      // userId、settingFlgをcookieに保存
-      setCookie("userId", userIdToUse);
-      setCookie("settingFlg", settingFlg || "0");
-      if (role) {
-        setCookie("role", role);
-      }
-    } catch (error) {
-      console.error("Google Credential の処理に失敗:", error);
-      throw new Error("Googleログインに失敗しました");
-    }
-  };
-
   const completeSetup = (setupData: InitialSetup) => {
-    if (user) {
-      setUser({ ...user, isSetupComplete: true });
+    // ログイン中のユーザー(user)と表示対象のユーザー(selectedUser)の両方を更新
+    if (user && selectedUser) {
+      const updatedUser = { ...user, isSetupComplete: true };
+      const updatedSelectedUser = { ...selectedUser, isSetupComplete: true };
+
+      setUser(updatedUser);
+      setSelectedUser(updatedSelectedUser);
       setUserSetup(setupData);
       setShouldRedirectToSetup(false);
 
@@ -248,6 +249,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       // デモ用の遅延
       await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // 本来は selectedUser.id に基づいて設定をロードしますが、
+      // デモのため、固定のデータを返します。
+      const DEMO_USER_SETTINGS = {
+        name: selectedUser?.name || "デモユーザー",
+        company: "デモ株式会社",
+        telNo: "03-1234-5678",
+        companySize: 2, // 法人（従業員1-5名）
+        industry: 1, // IT・ソフトウェア
+        fiscalYearStartYear: 2023,
+        fiscalYearStartMonth: 4,
+        totalAssets: 5000000, // 500万円
+        businessExperience: 2, // 1-3年
+        financialKnowledge: 2, // 基本レベル
+      };
 
       // デモ設定データをInitialSetup形式に変換
       const setupData: InitialSetup = {
@@ -353,12 +369,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     setUser(null);
     setUserSetup(null);
+    setManagedUsers([]);
+    setSelectedUser(null);
     setShouldRedirectToLogin(false);
     setShouldRedirectToSetup(false);
     // 認証関連データを削除
     deleteCookie("userId");
     deleteCookie("settingFlg");
     deleteCookie("role");
+    deleteCookie("selectedUserId");
+  };
+
+  const switchUser = (userId: string) => {
+    const userToSwitch = managedUsers.find((u) => u.id === userId);
+    if (userToSwitch) {
+      setSelectedUser(userToSwitch);
+      setCookie("selectedUserId", userId);
+
+      // ユーザーを切り替えたので、セットアップ状態を再評価
+      if (userToSwitch.isSetupComplete) {
+        setShouldRedirectToSetup(false);
+      } else {
+        // 管理者としてログインしている場合、クライアントのセットアップ画面には遷移しない
+        if (user?.role === "1" || user?.role === "2") {
+          // ここでは何もしないか、あるいは管理者用の通知を出すなど
+          console.log(
+            `管理ユーザー: ${userToSwitch.name} はセットアップが未完了です。`
+          );
+          setShouldRedirectToSetup(false); // 管理者はセットアップにリダイレクトされない
+        } else {
+          setShouldRedirectToSetup(true);
+        }
+      }
+    }
   };
 
   const value: AuthContextType = {
@@ -368,11 +411,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     shouldRedirectToLogin,
     shouldRedirectToSetup,
     login,
-    loginWithGoogleCredential,
     completeSetup,
     updateUserSetup,
     loadUserSetup,
     logout,
+    managedUsers,
+    selectedUser,
+    switchUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

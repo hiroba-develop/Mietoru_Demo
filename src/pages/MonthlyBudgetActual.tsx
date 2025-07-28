@@ -10,6 +10,23 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import * as pdfjs from "pdfjs-dist";
+import pdfjsWorker from "pdfjs-dist/build/pdf.worker?url";
+import { useAuth } from "../contexts/AuthContext";
+
+pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
+interface PlItem {
+  line: string;
+  isDataRow: boolean;
+}
+
+// PDFから解析された財務データの型
+interface ConvertedFinancialData {
+  売上高: { [key: string]: string };
+  売上総損益金額: { [key: string]: string };
+  営業損益金額: { [key: string]: string };
+}
 
 interface Sale {
   userId: string;
@@ -1448,22 +1465,66 @@ const demoProfits: Profit[] = [
   },
 ];
 
-// デモ用の営業利益データ（10年分） - 粗利益の80%と仮定
-const demoOperatingProfits: OperatingProfit[] = demoProfits.map((profit) => ({
-  userId: profit.userId,
-  year: profit.year,
-  month: profit.month,
-  operatingProfitTarget: Math.round(profit.profitTarget * 0.8),
-  operatingProfitResult: Math.round(profit.profitResult * 0.8),
-}));
+// ユーザーIDに基づいてデモデータを変更するヘルパー
+const getDemoDataForUser = (userId: string | undefined) => {
+  if (!userId) {
+    return {
+      sales: [],
+      profits: [],
+      operatingProfits: [],
+    };
+  }
 
-const BudgetActual: React.FC = () => {
+  const multiplier =
+    userId === "user-A" ? 0.95 : userId === "user-B" ? 1.05 : 1;
+
+  const userSales = demoSales.map((s) => ({
+    ...s,
+    saleResult: Math.round(s.saleResult * multiplier),
+    saleTarget: Math.round(s.saleTarget * multiplier),
+  }));
+
+  const userProfits = demoProfits.map((p) => ({
+    ...p,
+    profitResult: Math.round(p.profitResult * multiplier),
+    profitTarget: Math.round(p.profitTarget * multiplier),
+  }));
+
+  const userOperatingProfits = userProfits.map((p) => ({
+    userId: p.userId,
+    year: p.year,
+    month: p.month,
+    operatingProfitTarget: Math.round(p.profitTarget * 0.8),
+    operatingProfitResult: Math.round(p.profitResult * 0.8),
+  }));
+
+  return {
+    sales: userSales,
+    profits: userProfits,
+    operatingProfits: userOperatingProfits,
+  };
+};
+
+const MonthlyBudgetActual: React.FC = () => {
+  const { selectedUser } = useAuth();
   // デモデータを状態として管理
-  const [sales, setSales] = useState<Sale[]>(demoSales);
-  const [profits, setProfits] = useState<Profit[]>(demoProfits);
-  const [operatingProfits, setOperatingProfits] =
-    useState<OperatingProfit[]>(demoOperatingProfits);
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [profits, setProfits] = useState<Profit[]>([]);
+  const [operatingProfits, setOperatingProfits] = useState<OperatingProfit[]>(
+    []
+  );
   const [userSettings] = useState(demoUserSetup);
+
+  useEffect(() => {
+    if (selectedUser) {
+      const { sales, profits, operatingProfits } = getDemoDataForUser(
+        selectedUser.id
+      );
+      setSales(sales);
+      setProfits(profits);
+      setOperatingProfits(operatingProfits);
+    }
+  }, [selectedUser]);
 
   // 事業年度開始年月（デモデータから取得）
   const fiscalYearStart = userSettings.fiscalYearStartMonth;
@@ -1977,17 +2038,236 @@ const BudgetActual: React.FC = () => {
     }
   };
 
+  // lineのデータが数値かどうかを判定する
+  const isNumeric = (str: string): boolean => {
+    if (typeof str !== "string" || str.trim() === "") {
+      return false;
+    }
+    // カンマを除去し、括弧で囲まれた負の数に対応
+    let cleanStr = str.trim().replace(/,/g, "");
+    if (cleanStr.startsWith("(") && cleanStr.endsWith(")")) {
+      cleanStr = "-" + cleanStr.slice(1, -1);
+    }
+    // ハイフンや空文字列自体は数値としない
+    if (cleanStr === "-" || cleanStr === "") {
+      return false;
+    }
+    // 数値であり、かつ有限数であるか
+    return !isNaN(Number(cleanStr)) && isFinite(Number(cleanStr));
+  };
+
+  // 損益計算書データを解析する関数
+  const parsePLData = (text: string): PlItem[] => {
+    const lines = text.split("\n").filter((line) => line.trim() !== "");
+    const data: PlItem[] = [];
+
+    for (const line of lines) {
+      // 2つ以上の半角スペースを区切り文字として、行を分割する
+      const parts = line.split(/\s{2,}/);
+
+      for (const part of parts) {
+        const trimmedPart = part.trim();
+        // 空の文字列は無視
+        if (trimmedPart) {
+          if (trimmedPart.includes("年度")) {
+            console.log("年度", trimmedPart);
+          }
+          if (trimmedPart == "売上高") {
+            console.log("売上高", trimmedPart);
+          }
+          data.push({
+            line: trimmedPart,
+            isDataRow: isNumeric(trimmedPart),
+          });
+        }
+      }
+    }
+    return data;
+  };
+
+  // 損益計算書PDFの読み込み
+  const handlePLUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    if (file.type !== "application/pdf") {
+      console.error("エラー: 選択されたファイルはPDFではありません。");
+      alert("PDFファイルのみ選択できます。");
+      return;
+    }
+
+    /**
+     * 解析後データから財務データを抽出して変換する
+     * @param inputData 解析後データの配列
+     * @returns 変換後の財務データ
+     */
+    function convertFinancialData(inputData: PlItem[]): ConvertedFinancialData {
+      // 出力データの初期化
+      const output: ConvertedFinancialData = {
+        売上高: {},
+        売上総損益金額: {},
+        営業損益金額: {},
+      };
+
+      // 年度情報と月度情報を格納する変数
+      let fiscalYear = "";
+      let fiscalStartMonth = 0;
+      const monthColumns: string[] = [];
+
+      // Step 1: 年度情報を探す
+      // "YYYY年度（YYYY/MM/DD ～ YYYY/MM/DD）" のパターンを探す
+      for (const item of inputData) {
+        const yearMatch = item.line.match(
+          /(\d{4})年度（\d{4}\/(\d{2})\/\d{2} ～ \d{4}\/\d{2}\/\d{2}）/
+        );
+        if (yearMatch) {
+          fiscalYear = yearMatch[1];
+          fiscalStartMonth = parseInt(yearMatch[2], 10);
+          console.log(
+            `年度情報を検出: ${fiscalYear}年度, 開始月: ${fiscalStartMonth}月`
+          );
+          break;
+        }
+      }
+
+      if (!fiscalYear) {
+        console.warn("年度情報がPDFから読み取れませんでした。");
+        return output;
+      }
+
+      // Step 2: 月度のヘッダー行を探す
+      // "勘定科目／補助科目" の次の行から月度情報を取得
+      for (let i = 0; i < inputData.length; i++) {
+        if (inputData[i].line === "勘定科目／補助科目") {
+          // 次の行から月度情報を収集（"期間残高"が出てくるまで）
+          let j = i + 1;
+          while (j < inputData.length && inputData[j].line !== "期間残高") {
+            const monthMatch = inputData[j].line.match(/(\d+)月度/);
+            if (monthMatch) {
+              monthColumns.push(monthMatch[1]);
+            }
+            j++;
+          }
+
+          if (monthColumns.length > 0) {
+            console.log(`月度情報を検出: ${monthColumns.join(", ")}月`);
+            break;
+          }
+        }
+      }
+
+      // Step 3: 各指標のデータを抽出
+      const targetIndicators = [
+        { key: "売上高", pattern: /^売上高$/ },
+        { key: "売上総損益金額", pattern: /^Σ 売上総損益金額$/ },
+        { key: "営業損益金額", pattern: /^Σ 営業損益金額$/ },
+      ];
+
+      for (const indicator of targetIndicators) {
+        // 指標名の行を探す
+        for (let i = 0; i < inputData.length; i++) {
+          if (indicator.pattern.test(inputData[i].line)) {
+            console.log(`${indicator.key}を検出: 行${i}`);
+
+            // 次の行から数値データを取得
+            let dataStartIndex = i + 1;
+
+            // 数値データの行を探す（isDataRow: trueの行）
+            while (
+              dataStartIndex < inputData.length &&
+              !inputData[dataStartIndex].isDataRow
+            ) {
+              dataStartIndex++;
+            }
+
+            // 月数分のデータを取得
+            for (let j = 0; j < monthColumns.length; j++) {
+              if (
+                dataStartIndex + j < inputData.length &&
+                inputData[dataStartIndex + j].isDataRow
+              ) {
+                const monthStr = monthColumns[j];
+                const month = parseInt(monthStr, 10);
+                const value = inputData[dataStartIndex + j].line;
+
+                // 年度開始月より月が小さい場合は、年を+1する
+                const actualYear =
+                  month < fiscalStartMonth
+                    ? parseInt(fiscalYear, 10) + 1
+                    : parseInt(fiscalYear, 10);
+                const key = `${actualYear}年${month}月`;
+
+                output[indicator.key as keyof ConvertedFinancialData][key] =
+                  value;
+                console.log(`  ${key}: ${value}`);
+              }
+            }
+
+            break; // この指標の処理は完了
+          }
+        }
+      }
+
+      return output;
+    }
+
+    // PDFファイル処理のメインコード
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        if (e.target?.result) {
+          const typedArray = new Uint8Array(e.target.result as ArrayBuffer);
+          const pdf = await pdfjs.getDocument({ data: typedArray }).promise;
+          let fullText = "";
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items
+              .map((item: any) => ("str" in item ? item.str : ""))
+              .join(" ");
+            fullText += pageText + "\n";
+          }
+
+          console.log("PDFから抽出したテキスト:", fullText);
+
+          // 既存の解析処理
+          const parsedData = parsePLData(fullText);
+          console.log("解析後のデータ:", parsedData);
+
+          try {
+            // 解析後データを財務データ形式に変換
+            const convertedData = convertFinancialData(parsedData);
+            console.log("変換後の財務データ:", convertedData);
+          } catch (conversionError) {
+            console.error("財務データの変換に失敗しました:", conversionError);
+          }
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } catch (error) {
+      console.error("PDFファイルの解析に失敗しました:", error);
+      alert("PDFファイルの解析に失敗しました。");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl sm:text-3xl font-bold text-text">
-          予実管理（デモ版）
+          予実管理(月次)
         </h1>
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           <label className="btn-secondary flex items-center justify-center space-x-2 text-sm cursor-pointer">
             <Upload className="h-4 w-4" />
             <span className="hidden sm:inline">損益計算書 読み込み</span>
-            <input type="file" accept=".pdf" className="hidden" />
+            <input
+              type="file"
+              accept=".pdf"
+              className="hidden"
+              onChange={handlePLUpload}
+            />
           </label>
           <button
             onClick={handleDataExport}
@@ -2294,4 +2574,4 @@ const BudgetActual: React.FC = () => {
   );
 };
 
-export default BudgetActual;
+export default MonthlyBudgetActual;

@@ -8,7 +8,6 @@ import {
   ArrowLeft,
   BarChart3,
   User,
-  MessageSquare,
   CheckCircle,
   ChevronDown,
   ChevronUp,
@@ -16,75 +15,21 @@ import {
   Map,
   PlusCircle,
   XCircle,
+  TrendingUp,
 } from "lucide-react";
+import type {
+  UserPerformanceData,
+  RoadmapYear,
+  RoadmapQuarter,
+  RoadmapAdvice,
+  CompanySize,
+  Industry,
+  FinancialKnowledge,
+  CommentHistory,
+  SalesTarget,
+} from "../types";
 
-interface CommentHistory {
-  id: string;
-  comment: string;
-  date: string;
-  yearMonth: string; // YYYY-MM形式
-}
-
-interface PerformanceMetrics {
-  target: number;
-  actual: number;
-  achievementRate: number;
-}
-
-interface MonthlyPerformance {
-  sales: PerformanceMetrics;
-  grossProfit: PerformanceMetrics;
-  operatingProfit: PerformanceMetrics;
-}
-
-interface RoadmapAdvice {
-  title: string;
-  advice: string;
-  details: string[];
-}
-
-interface RoadmapQuarter {
-  [quarter: number]: RoadmapAdvice;
-}
-
-interface RoadmapYear {
-  year: number;
-  quarters: RoadmapQuarter;
-}
-
-interface UserPerformanceData {
-  userId: string;
-  userName: string;
-  email: string;
-  password?: string;
-  businessName: string;
-  role: "一般ユーザー" | "税理士";
-  phoneNumber?: string;
-  capital?: number;
-  companySize?: string;
-  industry?: string;
-  businessStartDate?: string;
-  knowledgeLevel?: string;
-  lastUpdated: string;
-  fiscalYearEndMonth: number; // 決算月（1-12）
-
-  performance: {
-    currentMonth: MonthlyPerformance;
-    lastMonth: MonthlyPerformance;
-    twoMonthsAgo: MonthlyPerformance;
-  };
-
-  // コメント関連
-  hasComment: boolean;
-  comment: string;
-  commentDate: string;
-
-  // コメント履歴
-  commentHistory: CommentHistory[];
-
-  // ナビゲーションデータ
-  roadmap: RoadmapYear[];
-}
+const DEMO_CURRENT_DATE = new Date("2025-07-01");
 
 const defaultRoadmapYear1: RoadmapQuarter = {
   1: {
@@ -201,20 +146,35 @@ const generateDefaultRoadmap = (): RoadmapYear[] => {
   return roadmap;
 };
 
+const generateDefaultSalesTargets = (): SalesTarget[] => {
+  return [
+    { year: 2024, targetAmount: 8000000 },
+    { year: 2025, targetAmount: 16000000 },
+    { year: 2026, targetAmount: 24000000 },
+    { year: 2027, targetAmount: 32000000 },
+    { year: 2028, targetAmount: 40000000 },
+    { year: 2029, targetAmount: 48000000 },
+    { year: 2030, targetAmount: 56000000 },
+    { year: 2031, targetAmount: 64000000 },
+    { year: 2032, targetAmount: 72000000 },
+    { year: 2033, targetAmount: 80000000 },
+  ];
+};
+
 // デモ用のクライアントデータ
 const DEMO_USERS: UserPerformanceData[] = [
   {
     userId: "user001",
     userName: "田中 太郎",
     email: "tanaka@example.com",
-    businessName: "田中コンサルティング",
+    companyName: "田中コンサルティング",
     role: "一般ユーザー",
     phoneNumber: "090-1234-5678",
     capital: 10000000,
-    companySize: "6-20人",
-    industry: "コンサルティング",
+    companySize: "法人（従業員6-20名）",
+    industry: "IT・ソフトウェア",
     businessStartDate: "2023-04",
-    knowledgeLevel: "中級者",
+    financialKnowledge: "中級レベル",
     lastUpdated: "2025-07-05",
     fiscalYearEndMonth: 3, // 3月決算
     performance: {
@@ -245,11 +205,30 @@ const DEMO_USERS: UserPerformanceData[] = [
           achievementRate: 64.0,
         },
       },
+      yoyCurrentMonth: {
+        sales: 5.0,
+        grossProfit: 2.0,
+        operatingProfit: 1.5,
+      },
+      yoyLastMonth: {
+        sales: 10.0,
+        grossProfit: 8.0,
+        operatingProfit: 5.0,
+      },
+      yoyTwoMonthsAgo: {
+        sales: 12.0,
+        grossProfit: 10.0,
+        operatingProfit: 8.0,
+      },
     },
     hasComment: true,
     comment:
       "7月は売上が目標を下回っていますが、6月は順調でした。夏季の集客アップと経費管理を見直し、秋に向けて準備を進めることをお勧めします。",
     commentDate: "2025-07-05",
+    goodPoint: "6月の実績は目標を上回り、好調を維持しています。",
+    cautionPoint: "夏季の集客減に備え、新たなキャンペーンを検討しましょう。",
+    badPoint:
+      "7月の売上が目標を大幅に下回っています。原因の特定と対策が急務です。",
     commentHistory: [
       {
         id: "comment001",
@@ -281,19 +260,22 @@ const DEMO_USERS: UserPerformanceData[] = [
       },
     ],
     roadmap: generateDefaultRoadmap(),
+    salesTargets: generateDefaultSalesTargets(),
+    grossProfitMarginTarget: 40,
+    operatingProfitMarginTarget: 20,
   },
   {
     userId: "user002",
     userName: "佐藤 花子",
     email: "sato@example.com",
-    businessName: "佐藤デザイン事務所",
+    companyName: "佐藤デザイン事務所",
     role: "一般ユーザー",
     phoneNumber: "080-1111-2222",
     capital: 3000000,
-    companySize: "1-5人",
-    industry: "デザイン",
+    companySize: "法人（従業員1-5名）",
+    industry: "IT・ソフトウェア",
     businessStartDate: "2024-01",
-    knowledgeLevel: "初心者",
+    financialKnowledge: "初心者",
     lastUpdated: "2025-07-04",
     fiscalYearEndMonth: 12, // 12月決算
     performance: {
@@ -324,11 +306,31 @@ const DEMO_USERS: UserPerformanceData[] = [
           achievementRate: 83.3,
         },
       },
+      yoyCurrentMonth: {
+        sales: -2.5,
+        grossProfit: -3.0,
+        operatingProfit: -3.5,
+      },
+      yoyLastMonth: {
+        sales: 15.0,
+        grossProfit: 18.0,
+        operatingProfit: 20.0,
+      },
+      yoyTwoMonthsAgo: {
+        sales: 2.5,
+        grossProfit: 3.1,
+        operatingProfit: 3.1,
+      },
     },
     hasComment: true,
     comment:
       "6月は目標を大幅に上回る結果で素晴らしいです！7月も堅調に推移しています。創意工夫とクライアント満足度の維持を心がけてください。",
     commentDate: "2025-07-04",
+    goodPoint:
+      "新規クライアントからの評価が高く、リピート受注に繋がっています。",
+    cautionPoint:
+      "プロジェクトの納期管理に注意し、遅延が発生しないようにしましょう。",
+    badPoint: "",
     commentHistory: [
       {
         id: "comment005",
@@ -346,19 +348,22 @@ const DEMO_USERS: UserPerformanceData[] = [
       },
     ],
     roadmap: generateDefaultRoadmap(),
+    salesTargets: generateDefaultSalesTargets(),
+    grossProfitMarginTarget: 40,
+    operatingProfitMarginTarget: 20,
   },
   {
     userId: "user003",
     userName: "山田 一郎",
     email: "yamada@example.com",
-    businessName: "山田商事",
+    companyName: "山田商事",
     role: "一般ユーザー",
     phoneNumber: "",
     capital: 50000000,
-    companySize: "21-50人",
-    industry: "卸売",
+    companySize: "法人（従業員21名以上）",
+    industry: "IT・ソフトウェア",
     businessStartDate: "2020-06",
-    knowledgeLevel: "上級者",
+    financialKnowledge: "上級レベル",
     lastUpdated: "2025-07-03",
     fiscalYearEndMonth: 6, // 6月決算
     performance: {
@@ -389,11 +394,30 @@ const DEMO_USERS: UserPerformanceData[] = [
           achievementRate: 75.0,
         },
       },
+      yoyCurrentMonth: {
+        sales: -10.0,
+        grossProfit: -12.0,
+        operatingProfit: -15.0,
+      },
+      yoyLastMonth: {
+        sales: -5.0,
+        grossProfit: -8.0,
+        operatingProfit: -10.0,
+      },
+      yoyTwoMonthsAgo: {
+        sales: -7.1,
+        grossProfit: -7.1,
+        operatingProfit: -7.1,
+      },
     },
     hasComment: true,
     comment:
       "夏の繁忙期に向けて準備を進めましょう。在庫管理と資金繰りに注意が必要です。",
     commentDate: "2025-05-10",
+    goodPoint: "主要取引先との関係が良好で、安定した受注が見込めます。",
+    cautionPoint:
+      "原材料費の上昇が利益を圧迫する可能性があるため、代替案の検討が必要です。",
+    badPoint: "",
     commentHistory: [
       {
         id: "comment007",
@@ -404,19 +428,22 @@ const DEMO_USERS: UserPerformanceData[] = [
       },
     ],
     roadmap: generateDefaultRoadmap(),
+    salesTargets: generateDefaultSalesTargets(),
+    grossProfitMarginTarget: 40,
+    operatingProfitMarginTarget: 20,
   },
   {
     userId: "user004",
     userName: "鈴木 美咲",
     email: "suzuki@example.com",
-    businessName: "鈴木マーケティング",
+    companyName: "鈴木マーケティング",
     role: "一般ユーザー",
     phoneNumber: "",
     capital: 5000000,
-    companySize: "1-5人",
-    industry: "マーケティング",
+    companySize: "法人（従業員1-5名）",
+    industry: "IT・ソフトウェア",
     businessStartDate: "2023-10",
-    knowledgeLevel: "初心者",
+    financialKnowledge: "初心者",
     lastUpdated: "2025-07-05",
     fiscalYearEndMonth: 9, // 9月決算
     performance: {
@@ -447,25 +474,46 @@ const DEMO_USERS: UserPerformanceData[] = [
           achievementRate: 74.3,
         },
       },
+      yoyCurrentMonth: {
+        sales: 20.0,
+        grossProfit: 22.0,
+        operatingProfit: 25.0,
+      },
+      yoyLastMonth: {
+        sales: 13.3,
+        grossProfit: 13.3,
+        operatingProfit: 13.3,
+      },
+      yoyTwoMonthsAgo: {
+        sales: 10.0,
+        grossProfit: 10.0,
+        operatingProfit: 10.0,
+      },
     },
     hasComment: false,
     comment: "",
     commentDate: "",
+    goodPoint: "",
+    cautionPoint: "",
+    badPoint: "",
     commentHistory: [],
     roadmap: generateDefaultRoadmap(),
+    salesTargets: generateDefaultSalesTargets(),
+    grossProfitMarginTarget: 40,
+    operatingProfitMarginTarget: 20,
   },
   {
     userId: "user005",
     userName: "高橋 健太",
     email: "takahashi@example.com",
-    businessName: "高橋IT開発",
+    companyName: "高橋IT開発",
     role: "一般ユーザー",
     phoneNumber: "",
     capital: 20000000,
-    companySize: "6-20人",
-    industry: "IT",
+    companySize: "法人（従業員6-20名）",
+    industry: "IT・ソフトウェア",
     businessStartDate: "2021-02",
-    knowledgeLevel: "中級者",
+    financialKnowledge: "中級レベル",
     lastUpdated: "2025-07-02",
     fiscalYearEndMonth: 12, // 12月決算
     performance: {
@@ -496,11 +544,30 @@ const DEMO_USERS: UserPerformanceData[] = [
           achievementRate: 85.7,
         },
       },
+      yoyCurrentMonth: {
+        sales: 8.7,
+        grossProfit: 8.7,
+        operatingProfit: 8.7,
+      },
+      yoyLastMonth: {
+        sales: 10.0,
+        grossProfit: 10.0,
+        operatingProfit: 10.0,
+      },
+      yoyTwoMonthsAgo: {
+        sales: 5.6,
+        grossProfit: 5.6,
+        operatingProfit: 5.6,
+      },
     },
     hasComment: true,
     comment:
       "IT開発案件の受注が好調です。技術者のスキルアップと品質管理を継続していきましょう。",
     commentDate: "2025-07-02",
+    goodPoint: "大規模案件の受注に成功し、売上が大幅に増加しました。",
+    cautionPoint:
+      "人材不足がボトルネックになる可能性があります。採用計画を前倒しで進めましょう。",
+    badPoint: "",
     commentHistory: [
       {
         id: "comment009",
@@ -518,10 +585,147 @@ const DEMO_USERS: UserPerformanceData[] = [
       },
     ],
     roadmap: generateDefaultRoadmap(),
+    salesTargets: generateDefaultSalesTargets(),
+    grossProfitMarginTarget: 40,
+    operatingProfitMarginTarget: 20,
   },
 ];
 
-const TaxAccountantDashboard: React.FC = () => {
+interface SalesTargetEditorProps {
+  targets: SalesTarget[];
+  onChange: (year: number, newTarget: number) => void;
+  grossProfitMarginTarget: number;
+  operatingProfitMarginTarget: number;
+  onProfitMarginChange: (type: "gross" | "operating", value: number) => void;
+}
+
+const SalesTargetEditor: React.FC<SalesTargetEditorProps> = ({
+  targets,
+  onChange,
+  grossProfitMarginTarget,
+  operatingProfitMarginTarget,
+  onProfitMarginChange,
+}) => {
+  const [editingCell, setEditingCell] = useState<{
+    year: number;
+    value: string;
+  } | null>(null);
+
+  const handleDoubleClick = (year: number, amount: number) => {
+    setEditingCell({ year, value: String(amount) });
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (editingCell) {
+      setEditingCell({ ...editingCell, value: e.target.value });
+    }
+  };
+
+  const handleInputBlur = () => {
+    if (editingCell) {
+      const newTarget = parseInt(editingCell.value.replace(/,/g, ""), 10);
+      if (!isNaN(newTarget)) {
+        onChange(editingCell.year, newTarget);
+      }
+      setEditingCell(null);
+    }
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleInputBlur();
+    }
+    if (e.key === "Escape") {
+      setEditingCell(null);
+    }
+  };
+
+  const renderTableRows = (start: number, end: number) => {
+    return (
+      <React.Fragment>
+        <tr>
+          {targets.slice(start, end).map((target, index) => (
+            <td
+              key={target.year}
+              className="p-2 border text-center bg-gray-100 font-medium"
+            >
+              {start + index + 1}年目 ({target.year}年度)
+            </td>
+          ))}
+        </tr>
+        <tr>
+          {targets.slice(start, end).map((target) => (
+            <td
+              key={target.year}
+              className="p-2 border text-center"
+              onDoubleClick={() =>
+                handleDoubleClick(target.year, target.targetAmount)
+              }
+            >
+              {editingCell?.year === target.year ? (
+                <input
+                  type="text"
+                  value={editingCell.value}
+                  onChange={handleInputChange}
+                  onBlur={handleInputBlur}
+                  onKeyDown={handleInputKeyDown}
+                  className="w-full text-center p-1 border rounded"
+                  autoFocus
+                />
+              ) : (
+                new Intl.NumberFormat("ja-JP").format(target.targetAmount)
+              )}
+            </td>
+          ))}
+        </tr>
+      </React.Fragment>
+    );
+  };
+
+  return (
+    <div className="overflow-x-auto">
+      <h3 className="text-lg font-semibold text-text flex items-center space-x-2">
+        <span>年間売上目標</span>
+      </h3>
+      <table className="w-full border-collapse">
+        <tbody>
+          {renderTableRows(0, 5)}
+          {renderTableRows(5, 10)}
+        </tbody>
+      </table>
+      <div className="flex flex-col gap-4 grid grid-cols-2 mt-4">
+        <div className="flex flex-col gap-2">
+          <h3 className="text-lg font-semibold text-text flex items-center space-x-2">
+            <span>粗利益率目標(%)</span>
+          </h3>
+          <input
+            type="number"
+            value={grossProfitMarginTarget}
+            onChange={(e) =>
+              onProfitMarginChange("gross", Number(e.target.value))
+            }
+            className="w-full p-2 border border-gray-300 rounded-lg"
+          />
+        </div>
+        <div className="flex flex-col gap-2">
+          <h3 className="text-lg font-semibold text-text flex items-center space-x-2">
+            <span>営業利益率目標(%)</span>
+          </h3>
+          <input
+            type="number"
+            value={operatingProfitMarginTarget}
+            onChange={(e) =>
+              onProfitMarginChange("operating", Number(e.target.value))
+            }
+            className="w-full p-2 border border-gray-300 rounded-lg"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const ClientManagement: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<UserPerformanceData | null>(
     null
   );
@@ -529,11 +733,80 @@ const TaxAccountantDashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState("name_asc");
   const [currentComment, setCurrentComment] = useState("");
+  const [goodPoint, setGoodPoint] = useState("");
+  const [cautionPoint, setCautionPoint] = useState("");
+  const [badPoint, setBadPoint] = useState("");
   const [isCommentSaving, setIsCommentSaving] = useState(false);
   const [showCommentHistory, setShowCommentHistory] = useState(false);
   const [selectedYear, setSelectedYear] = useState<string>("");
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
+  const [newUser, setNewUser] = useState<
+    Partial<UserPerformanceData> & {
+      password?: string;
+      businessStartYear?: string;
+      businessStartMonth?: string;
+    }
+  >({
+    role: "一般ユーザー",
+    companyName: "",
+    userName: "",
+    email: "",
+    password: "",
+  });
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  const companySizeOptions: CompanySize[] = [
+    "個人事業主",
+    "法人（従業員1-5名）",
+    "法人（従業員6-20名）",
+    "法人（従業員21名以上）",
+  ];
+
+  const industryOptions: Industry[] = [
+    "IT・ソフトウェア",
+    "製造業",
+    "小売業",
+    "飲食業",
+    "サービス業",
+    "建設業",
+    "医療・福祉",
+    "教育",
+    "金融・保険",
+    "不動産",
+    "その他",
+  ];
+
+  const financialKnowledgeOptions: FinancialKnowledge[] = [
+    "初心者",
+    "基本レベル",
+    "中級レベル",
+    "上級レベル",
+  ];
+
+  const currentYear = DEMO_CURRENT_DATE.getFullYear();
+  const currentMonth = DEMO_CURRENT_DATE.getMonth() + 1;
+
+  useEffect(() => {
+    // 年月が変更されたときに、選択された年月が未来にならないように調整
+    if (
+      newUser.businessStartYear &&
+      newUser.businessStartMonth &&
+      Number(newUser.businessStartYear) === currentYear &&
+      Number(newUser.businessStartMonth) > currentMonth
+    ) {
+      setNewUser((prev) => ({
+        ...prev,
+        businessStartMonth: String(currentMonth).padStart(2, "0"),
+      }));
+    }
+  }, [
+    newUser.businessStartYear,
+    newUser.businessStartMonth,
+    currentYear,
+    currentMonth,
+  ]);
 
   useEffect(() => {
     // デモ用のローディングシミュレーション
@@ -546,13 +819,21 @@ const TaxAccountantDashboard: React.FC = () => {
 
   const [editableRoadmap, setEditableRoadmap] = useState<RoadmapYear[]>([]);
   const [openYear, setOpenYear] = useState<number | null>(null);
+  const [editableSalesTargets, setEditableSalesTargets] = useState<
+    SalesTarget[]
+  >([]);
+  const [isSalesTargetModified, setIsSalesTargetModified] =
+    useState<boolean>(false);
 
   // selectedUser が変更されたときにロードマップ編集用のstateを更新
   useEffect(() => {
     if (selectedUser) {
       setEditableRoadmap(selectedUser.roadmap);
+      setEditableSalesTargets(selectedUser.salesTargets || []);
+      setIsSalesTargetModified(false);
     } else {
       setEditableRoadmap([]);
+      setEditableSalesTargets([]);
     }
     setOpenYear(null); // ユーザー切り替え時にアコーディオンを閉じる
   }, [selectedUser]);
@@ -581,7 +862,7 @@ const TaxAccountantDashboard: React.FC = () => {
     .filter(
       (user) =>
         user.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.businessName.toLowerCase().includes(searchTerm.toLowerCase())
+        user.companyName.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
       switch (sortOrder) {
@@ -637,7 +918,14 @@ const TaxAccountantDashboard: React.FC = () => {
 
   // コメント保存関数（デモ版）
   const handleSaveComment = async () => {
-    if (!selectedUser || !currentComment.trim()) return;
+    if (!selectedUser) return;
+    if (
+      !currentComment.trim() &&
+      !goodPoint.trim() &&
+      !cautionPoint.trim() &&
+      !badPoint.trim()
+    )
+      return;
 
     setIsCommentSaving(true);
 
@@ -648,26 +936,36 @@ const TaxAccountantDashboard: React.FC = () => {
       const currentDateStr = new Date().toISOString().split("T")[0];
       const currentYearMonth = currentDateStr.substring(0, 7); // YYYY-MM形式
 
-      // 新しいコメント履歴エントリを作成
-      const newHistoryEntry: CommentHistory = {
-        id: `comment_${Date.now()}`,
-        comment: currentComment.trim(),
-        date: currentDateStr,
-        yearMonth: currentYearMonth,
-      };
+      const updatedUsers = users.map((user) => {
+        if (user.userId === selectedUser.userId) {
+          const newHistoryEntry: CommentHistory | null = currentComment.trim()
+            ? {
+                id: `comment_${Date.now()}`,
+                comment: currentComment.trim(),
+                date: currentDateStr,
+                yearMonth: currentYearMonth,
+              }
+            : null;
 
-      // ユーザーデータを更新
-      const updatedUsers = users.map((user) =>
-        user.userId === selectedUser.userId
-          ? {
-              ...user,
-              hasComment: true,
-              comment: currentComment.trim(),
-              commentDate: currentDateStr,
-              commentHistory: [...user.commentHistory, newHistoryEntry],
-            }
-          : user
-      );
+          const newCommentHistory = newHistoryEntry
+            ? [...user.commentHistory, newHistoryEntry]
+            : user.commentHistory;
+
+          const hasNewMainComment = !!currentComment.trim();
+
+          return {
+            ...user,
+            hasComment: user.hasComment || hasNewMainComment,
+            comment: hasNewMainComment ? currentComment.trim() : user.comment,
+            commentDate: hasNewMainComment ? currentDateStr : user.commentDate,
+            goodPoint: goodPoint.trim(),
+            cautionPoint: cautionPoint.trim(),
+            badPoint: badPoint.trim(),
+            commentHistory: newCommentHistory,
+          };
+        }
+        return user;
+      });
 
       setUsers(updatedUsers);
 
@@ -677,13 +975,16 @@ const TaxAccountantDashboard: React.FC = () => {
       );
       if (updatedSelectedUser) {
         setSelectedUser(updatedSelectedUser);
+        setGoodPoint(updatedSelectedUser.goodPoint || "");
+        setCautionPoint(updatedSelectedUser.cautionPoint || "");
+        setBadPoint(updatedSelectedUser.badPoint || "");
       }
 
       setCurrentComment("");
       // 下書きがあれば削除
       localStorage.removeItem(`comment_draft_${selectedUser.userId}`);
 
-      alert("コメントを保存しました (デモモード)");
+      alert("アドバイスを保存しました (デモモード)");
     } catch (err) {
       console.error("デモコメント保存エラー:", err);
       alert("コメントの保存中にエラーが発生しました");
@@ -692,12 +993,119 @@ const TaxAccountantDashboard: React.FC = () => {
     }
   };
 
+  const openAddUserModal = () => {
+    setNewUser({
+      role: "一般ユーザー",
+      companyName: "",
+      userName: "",
+      email: "",
+      password: "",
+    });
+    setErrors({});
+    setIsAddUserModalOpen(true);
+  };
+
+  const closeAddUserModal = () => {
+    setIsAddUserModalOpen(false);
+  };
+
+  const handleNewUserChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setNewUser((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+  };
+
+  const validateNewUserForm = () => {
+    const newErrors: { [key: string]: string } = {};
+    if (!newUser.userName) newErrors.userName = "ユーザー名は必須です。";
+    if (!newUser.companyName) newErrors.companyName = "会社名は必須です。";
+    if (!newUser.email) {
+      newErrors.email = "メールアドレスは必須です。";
+    } else if (newUser.email.includes("@")) {
+      newErrors.email = "メールアドレスに「@」は含めないでください。";
+    }
+    if (!newUser.password || newUser.password.length < 8) {
+      newErrors.password = "パスワードは8文字以上で入力してください。";
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleAddNewUser = () => {
+    if (!validateNewUserForm()) return;
+
+    const businessStartDate =
+      newUser.businessStartYear && newUser.businessStartMonth
+        ? `${newUser.businessStartYear}-${newUser.businessStartMonth.padStart(
+            2,
+            "0"
+          )}`
+        : "";
+
+    const newUserPayload = { ...newUser };
+    delete (newUserPayload as any).businessStartYear;
+    delete (newUserPayload as any).businessStartMonth;
+
+    const newUserWithDefaults: UserPerformanceData = {
+      userId: `user_${Date.now()}`,
+      lastUpdated: DEMO_CURRENT_DATE.toISOString().split("T")[0],
+      performance: {
+        currentMonth: {
+          sales: { target: 0, actual: 0, achievementRate: 0 },
+          grossProfit: { target: 0, actual: 0, achievementRate: 0 },
+          operatingProfit: { target: 0, actual: 0, achievementRate: 0 },
+        },
+        lastMonth: {
+          sales: { target: 0, actual: 0, achievementRate: 0 },
+          grossProfit: { target: 0, actual: 0, achievementRate: 0 },
+          operatingProfit: { target: 0, actual: 0, achievementRate: 0 },
+        },
+        twoMonthsAgo: {
+          sales: { target: 0, actual: 0, achievementRate: 0 },
+          grossProfit: { target: 0, actual: 0, achievementRate: 0 },
+          operatingProfit: { target: 0, actual: 0, achievementRate: 0 },
+        },
+      },
+      hasComment: false,
+      comment: "",
+      commentDate: "",
+      commentHistory: [],
+      roadmap: generateDefaultRoadmap(),
+      fiscalYearEndMonth: 12, // デフォルト
+      ...newUserPayload,
+      businessStartDate,
+      role: "一般ユーザー",
+      salesTargets: generateDefaultSalesTargets(),
+      grossProfitMarginTarget: 40,
+      operatingProfitMarginTarget: 20,
+    } as UserPerformanceData;
+
+    setUsers((prev) => [...prev, newUserWithDefaults]);
+    closeAddUserModal();
+  };
+
   // コメント下書き保存関数
   const handleSaveDraft = () => {
-    if (!currentComment.trim()) return;
+    if (!selectedUser) return;
+    const draftData = {
+      comment: currentComment,
+      goodPoint,
+      cautionPoint,
+      badPoint,
+    };
+
+    if (!Object.values(draftData).some((val) => val.trim())) return;
+
     localStorage.setItem(
-      `comment_draft_${selectedUser?.userId}`,
-      currentComment
+      `comment_draft_${selectedUser.userId}`,
+      JSON.stringify(draftData)
     );
     if (window.confirm("下書きを保存しました。ユーザー一覧に戻りますか？")) {
       setSelectedUser(null);
@@ -709,10 +1117,25 @@ const TaxAccountantDashboard: React.FC = () => {
     setSelectedUser(user);
     // 下書きがあれば読み込む
     const draft = localStorage.getItem(`comment_draft_${user.userId}`);
-    if (draft && !user.hasComment) {
-      setCurrentComment(draft);
+    if (draft) {
+      try {
+        const parsed = JSON.parse(draft);
+        setCurrentComment(parsed.comment || "");
+        setGoodPoint(parsed.goodPoint || user.goodPoint || "");
+        setCautionPoint(parsed.cautionPoint || user.cautionPoint || "");
+        setBadPoint(parsed.badPoint || user.badPoint || "");
+      } catch (e) {
+        // 古い形式の下書き（文字列のみ）との互換性のため
+        setCurrentComment(draft);
+        setGoodPoint(user.goodPoint || "");
+        setCautionPoint(user.cautionPoint || "");
+        setBadPoint(user.badPoint || "");
+      }
     } else {
       setCurrentComment("");
+      setGoodPoint(user.goodPoint || "");
+      setCautionPoint(user.cautionPoint || "");
+      setBadPoint(user.badPoint || "");
     }
   };
 
@@ -844,42 +1267,6 @@ const TaxAccountantDashboard: React.FC = () => {
     );
   };
 
-  const addDetail = (year: number, quarter: number) => {
-    setEditableRoadmap((prev) =>
-      prev.map((y) => {
-        if (y.year === year) {
-          const newQuarters = { ...y.quarters };
-          const newDetails = [...newQuarters[quarter].details, ""];
-          newQuarters[quarter] = {
-            ...newQuarters[quarter],
-            details: newDetails,
-          };
-          return { ...y, quarters: newQuarters };
-        }
-        return y;
-      })
-    );
-  };
-
-  const removeDetail = (year: number, quarter: number, detailIndex: number) => {
-    setEditableRoadmap((prev) =>
-      prev.map((y) => {
-        if (y.year === year) {
-          const newQuarters = { ...y.quarters };
-          const newDetails = newQuarters[quarter].details.filter(
-            (_, i) => i !== detailIndex
-          );
-          newQuarters[quarter] = {
-            ...newQuarters[quarter],
-            details: newDetails,
-          };
-          return { ...y, quarters: newQuarters };
-        }
-        return y;
-      })
-    );
-  };
-
   const handleSaveRoadmap = () => {
     if (!selectedUser) return; // ユーザーが選択されていない場合は何もしない
 
@@ -899,9 +1286,56 @@ const TaxAccountantDashboard: React.FC = () => {
     alert("ナビゲーションを保存しました (デモモード)");
   };
 
+  const handleSalesTargetChange = (year: number, newTarget: number) => {
+    setEditableSalesTargets((prev) =>
+      prev.map((target) =>
+        target.year === year ? { ...target, targetAmount: newTarget } : target
+      )
+    );
+    setIsSalesTargetModified(true);
+  };
+
+  const handleProfitMarginChange = (
+    type: "gross" | "operating",
+    value: number
+  ) => {
+    if (!selectedUser) return;
+    const key =
+      type === "gross"
+        ? "grossProfitMarginTarget"
+        : "operatingProfitMarginTarget";
+    setSelectedUser((prev) => (prev ? { ...prev, [key]: value } : null));
+    setEditableSalesTargets((prev) => [...prev]); // HACK: to trigger re-render and show save button
+    setIsSalesTargetModified(true);
+  };
+
+  const handleSaveSalesTargets = () => {
+    if (!selectedUser) return;
+    const updatedUsers = users.map((user) =>
+      user.userId === selectedUser.userId
+        ? {
+            ...user,
+            salesTargets: editableSalesTargets,
+            grossProfitMarginTarget: selectedUser.grossProfitMarginTarget,
+            operatingProfitMarginTarget:
+              selectedUser.operatingProfitMarginTarget,
+          }
+        : user
+    );
+    setUsers(updatedUsers);
+    const updatedSelectedUser = updatedUsers.find(
+      (u) => u.userId === selectedUser.userId
+    );
+    if (updatedSelectedUser) {
+      setSelectedUser(updatedSelectedUser);
+    }
+    setIsSalesTargetModified(false);
+    alert("売上目標を保存しました (デモモード)");
+  };
+
   // ユーザー詳細画面
   if (selectedUser) {
-    const currentDate = new Date("2025-07-01"); // デモデータに基づいた現在日付
+    const currentDate = DEMO_CURRENT_DATE; // デモデータに基づいた現在日付
     const formatYearMonth = (date: Date) => {
       return `${date.getFullYear()}年${date.getMonth() + 1}月`;
     };
@@ -938,12 +1372,16 @@ const TaxAccountantDashboard: React.FC = () => {
                 {selectedUser.userName}
               </h2>
               <p className="text-text/70">{selectedUser.email}</p>
-              <p className="text-text/70">{selectedUser.businessName}</p>
+              <p className="text-text/70">{selectedUser.companyName}</p>
             </div>
             <div className="text-right">
-              <div className="text-sm text-text/70 mb-1">決算月</div>
+              <div className="text-sm text-text/70 mb-1">事業開始年月</div>
               <div className="text-lg font-semibold text-primary">
-                {getFiscalYearEndMonthName(selectedUser.fiscalYearEndMonth)}
+                {selectedUser.businessStartDate
+                  ? `${selectedUser.businessStartDate.split("-")[0]}年${
+                      selectedUser.businessStartDate.split("-")[1]
+                    }月`
+                  : "未設定"}
               </div>
             </div>
           </div>
@@ -954,7 +1392,6 @@ const TaxAccountantDashboard: React.FC = () => {
           {/* 先々月実績 */}
           <div className="card">
             <h3 className="text-lg font-semibold text-text mb-4 flex items-center space-x-2">
-              <History className="h-5 w-5 text-primary" />
               <span>{`${formatYearMonth(twoMonthsAgoDate)}実績`}</span>
             </h3>
             <div className="space-y-3">
@@ -1103,7 +1540,6 @@ const TaxAccountantDashboard: React.FC = () => {
           {/* 先月実績 */}
           <div className="card">
             <h3 className="text-lg font-semibold text-text mb-4 flex items-center space-x-2">
-              <Calendar className="h-5 w-5 text-primary" />
               <span>{`${formatYearMonth(lastMonthDate)}実績`}</span>
             </h3>
 
@@ -1250,7 +1686,6 @@ const TaxAccountantDashboard: React.FC = () => {
           {/* 今月実績 */}
           <div className="card">
             <h3 className="text-lg font-semibold text-text mb-4 flex items-center space-x-2">
-              <BarChart3 className="h-5 w-5 text-accent" />
               <span>{`${formatYearMonth(currentMonthDate)}実績`}</span>
             </h3>
 
@@ -1395,6 +1830,159 @@ const TaxAccountantDashboard: React.FC = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* 前年同月比 */}
+        <div className="card">
+          <h3 className="text-lg font-semibold text-text mb-4 flex items-center space-x-2">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            <span>前年同月比</span>
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="p-3 font-medium text-text/70">年月</th>
+                  <th className="p-3 font-medium text-text/70">売上</th>
+                  <th className="p-3 font-medium text-text/70">粗利益</th>
+                  <th className="p-3 font-medium text-text/70">営業利益</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedUser.performance.yoyCurrentMonth && (
+                  <tr className="border-b">
+                    <td className="p-3 font-medium">
+                      {formatYearMonth(currentMonthDate)}
+                    </td>
+                    <td
+                      className={`p-3 font-semibold ${
+                        selectedUser.performance.yoyCurrentMonth.sales >= 0
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {selectedUser.performance.yoyCurrentMonth.sales.toFixed(
+                        1
+                      )}
+                      %
+                    </td>
+                    <td
+                      className={`p-3 font-semibold ${
+                        selectedUser.performance.yoyCurrentMonth.grossProfit >=
+                        0
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {selectedUser.performance.yoyCurrentMonth.grossProfit.toFixed(
+                        1
+                      )}
+                      %
+                    </td>
+                    <td
+                      className={`p-3 font-semibold ${
+                        selectedUser.performance.yoyCurrentMonth
+                          .operatingProfit >= 0
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {selectedUser.performance.yoyCurrentMonth.operatingProfit.toFixed(
+                        1
+                      )}
+                      %
+                    </td>
+                  </tr>
+                )}
+                {selectedUser.performance.yoyLastMonth && (
+                  <tr className="border-b">
+                    <td className="p-3 font-medium">
+                      {formatYearMonth(lastMonthDate)}
+                    </td>
+                    <td
+                      className={`p-3 font-semibold ${
+                        selectedUser.performance.yoyLastMonth.sales >= 0
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {selectedUser.performance.yoyLastMonth.sales.toFixed(1)}%
+                    </td>
+                    <td
+                      className={`p-3 font-semibold ${
+                        selectedUser.performance.yoyLastMonth.grossProfit >= 0
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {selectedUser.performance.yoyLastMonth.grossProfit.toFixed(
+                        1
+                      )}
+                      %
+                    </td>
+                    <td
+                      className={`p-3 font-semibold ${
+                        selectedUser.performance.yoyLastMonth.operatingProfit >=
+                        0
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {selectedUser.performance.yoyLastMonth.operatingProfit.toFixed(
+                        1
+                      )}
+                      %
+                    </td>
+                  </tr>
+                )}
+                {selectedUser.performance.yoyTwoMonthsAgo && (
+                  <tr className="border-b">
+                    <td className="p-3 font-medium">
+                      {formatYearMonth(twoMonthsAgoDate)}
+                    </td>
+                    <td
+                      className={`p-3 font-semibold ${
+                        selectedUser.performance.yoyTwoMonthsAgo.sales >= 0
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {selectedUser.performance.yoyTwoMonthsAgo.sales.toFixed(
+                        1
+                      )}
+                      %
+                    </td>
+                    <td
+                      className={`p-3 font-semibold ${
+                        selectedUser.performance.yoyTwoMonthsAgo.grossProfit >=
+                        0
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {selectedUser.performance.yoyTwoMonthsAgo.grossProfit.toFixed(
+                        1
+                      )}
+                      %
+                    </td>
+                    <td
+                      className={`p-3 font-semibold ${
+                        selectedUser.performance.yoyTwoMonthsAgo
+                          .operatingProfit >= 0
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }`}
+                    >
+                      {selectedUser.performance.yoyTwoMonthsAgo.operatingProfit.toFixed(
+                        1
+                      )}
+                      %
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -1551,16 +2139,86 @@ const TaxAccountantDashboard: React.FC = () => {
         {/* アドバイス入力エリア */}
         <div className="card">
           <h3 className="text-lg font-semibold text-text mb-4">
-            {selectedUser.hasComment
-              ? "新しいアドバイス追加"
-              : "ワンポイントアドバイス入力"}
+            アドバイス入力
           </h3>
+
+          {/* アドバイスサマリー */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3 mb-6">
+            <div className="p-4 rounded-lg border-green-200 bg-green-50">
+              <h4 className="font-bold text-green-800 mb-2 flex items-center">
+                ◎ 良かった点
+              </h4>
+              <textarea
+                className={`w-full p-2 border border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent resize-y ${
+                  goodPoint !== (selectedUser.goodPoint || "")
+                    ? "bg-yellow-100"
+                    : ""
+                }`}
+                rows={4}
+                placeholder="良かった点を入力..."
+                value={goodPoint}
+                onChange={(e) => setGoodPoint(e.target.value)}
+                maxLength={500}
+              />
+              <div className="text-right text-sm text-text/70 mt-1">
+                {goodPoint.length}/500文字
+              </div>
+            </div>
+            <div className="p-4 rounded-lg border-yellow-200 bg-yellow-50">
+              <h4 className="font-bold text-yellow-800 mb-2 flex items-center">
+                △ 注意点
+              </h4>
+              <textarea
+                className={`w-full p-2 border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent resize-y ${
+                  cautionPoint !== (selectedUser.cautionPoint || "")
+                    ? "bg-yellow-100"
+                    : ""
+                }`}
+                rows={4}
+                placeholder="注意点を入力..."
+                value={cautionPoint}
+                onChange={(e) => setCautionPoint(e.target.value)}
+                maxLength={500}
+              />
+              <div className="text-right text-sm text-text/70 mt-1">
+                {cautionPoint.length}/500文字
+              </div>
+            </div>
+            <div className="p-4 rounded-lg border-red-200 bg-red-50">
+              <h4 className="font-bold text-red-800 mb-2 flex items-center">
+                × 悪かった点
+              </h4>
+              <textarea
+                className={`w-full p-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent resize-y ${
+                  badPoint !== (selectedUser.badPoint || "")
+                    ? "bg-yellow-100"
+                    : ""
+                }`}
+                rows={4}
+                placeholder="悪かった点を入力..."
+                value={badPoint}
+                onChange={(e) => setBadPoint(e.target.value)}
+                maxLength={500}
+              />
+              <div className="text-right text-sm text-text/70 mt-1">
+                {badPoint.length}/500文字
+              </div>
+            </div>
+          </div>
+
+          {/* 詳細アドバイス */}
+          <h4 className="text-md font-semibold text-text mb-2">
+            {selectedUser.hasComment
+              ? "新しいアドバイス追加（履歴に登録）"
+              : "ワンポイントアドバイス（履歴に登録）"}
+          </h4>
           <textarea
             className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
             rows={4}
             placeholder="こちらに税理士からのアドバイスを入力してください..."
             value={currentComment}
             onChange={(e) => setCurrentComment(e.target.value)}
+            maxLength={500}
           />
           <div className="flex justify-between items-center mt-4">
             <div className="text-sm text-text/70">
@@ -1569,14 +2227,26 @@ const TaxAccountantDashboard: React.FC = () => {
             <div className="flex space-x-3">
               <button
                 onClick={handleSaveDraft}
-                disabled={!currentComment.trim() || isCommentSaving}
+                disabled={
+                  isCommentSaving ||
+                  (!currentComment.trim() &&
+                    !goodPoint.trim() &&
+                    !cautionPoint.trim() &&
+                    !badPoint.trim())
+                }
                 className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 下書き保存
               </button>
               <button
                 onClick={handleSaveComment}
-                disabled={!currentComment.trim() || isCommentSaving}
+                disabled={
+                  isCommentSaving ||
+                  (!currentComment.trim() &&
+                    !goodPoint.trim() &&
+                    !cautionPoint.trim() &&
+                    !badPoint.trim())
+                }
                 className="px-4 py-2 text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
               >
                 {isCommentSaving && (
@@ -1595,132 +2265,141 @@ const TaxAccountantDashboard: React.FC = () => {
             <span>ナビゲーション編集</span>
           </h3>
           <div className="space-y-2 max-h-[600px] overflow-y-auto pr-2">
-            {editableRoadmap.map((yearData) => (
-              <div key={yearData.year} className="border rounded-lg">
-                <button
-                  onClick={() =>
-                    setOpenYear(
-                      openYear === yearData.year ? null : yearData.year
-                    )
-                  }
-                  className="w-full text-left p-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <span className="font-semibold">{yearData.year}年度</span>
-                  {openYear === yearData.year ? (
-                    <ChevronUp className="h-5 w-5" />
-                  ) : (
-                    <ChevronDown className="h-5 w-5" />
-                  )}
-                </button>
-                {openYear === yearData.year && (
-                  <div className="p-4 border-t space-y-4">
-                    {Object.entries(yearData.quarters).map(
-                      ([q, advice]: [string, RoadmapAdvice]) => {
-                        const quarter = parseInt(q);
-                        return (
-                          <div
-                            key={quarter}
-                            className="mb-4 p-4 border rounded-md bg-white shadow-sm"
-                          >
-                            <h4 className="font-bold text-primary mb-3">
-                              第{quarter}四半期
-                            </h4>
-                            <div className="space-y-3">
-                              <div>
-                                <label className="block text-sm font-medium text-text/70 mb-1">
-                                  タイトル
-                                </label>
-                                <input
-                                  type="text"
-                                  value={advice.title}
-                                  onChange={(e) =>
-                                    handleRoadmapChange(
-                                      yearData.year,
-                                      quarter,
-                                      "title",
-                                      e.target.value
-                                    )
-                                  }
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-text/70 mb-1">
-                                  アドバイス
-                                </label>
-                                <textarea
-                                  value={advice.advice}
-                                  onChange={(e) =>
-                                    handleRoadmapChange(
-                                      yearData.year,
-                                      quarter,
-                                      "advice",
-                                      e.target.value
-                                    )
-                                  }
-                                  rows={2}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-y"
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-text/70 mb-1">
-                                  詳細タスク
-                                </label>
-                                <div className="space-y-2">
-                                  {advice.details.map(
-                                    (detail: string, index: number) => (
-                                      <div
-                                        key={index}
-                                        className="flex items-center space-x-2"
-                                      >
-                                        <input
-                                          type="text"
-                                          value={detail}
-                                          onChange={(e) =>
-                                            handleDetailChange(
-                                              yearData.year,
-                                              quarter,
-                                              index,
-                                              e.target.value
-                                            )
-                                          }
-                                          className="flex-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                        />
-                                        <button
-                                          onClick={() =>
-                                            removeDetail(
-                                              yearData.year,
-                                              quarter,
-                                              index
-                                            )
-                                          }
-                                          className="text-red-500 hover:text-red-700 transition-colors"
-                                        >
-                                          <XCircle className="h-5 w-5" />
-                                        </button>
-                                      </div>
-                                    )
-                                  )}
-                                  <button
-                                    onClick={() =>
-                                      addDetail(yearData.year, quarter)
+            {editableRoadmap.map((yearData) => {
+              const originalYearData = selectedUser.roadmap.find(
+                (y) => y.year === yearData.year
+              );
+              return (
+                <div key={yearData.year} className="border rounded-lg">
+                  <button
+                    onClick={() =>
+                      setOpenYear(
+                        openYear === yearData.year ? null : yearData.year
+                      )
+                    }
+                    className="w-full text-left p-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors"
+                  >
+                    <span className="font-semibold">{yearData.year}年度</span>
+                    {openYear === yearData.year ? (
+                      <ChevronUp className="h-5 w-5" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5" />
+                    )}
+                  </button>
+                  {openYear === yearData.year && (
+                    <div className="p-4 border-t space-y-4">
+                      {Object.entries(yearData.quarters).map(
+                        ([q, advice]: [string, RoadmapAdvice]) => {
+                          const quarter = parseInt(q);
+                          const originalQuarterAdvice =
+                            originalYearData?.quarters[quarter];
+                          return (
+                            <div
+                              key={quarter}
+                              className="mb-4 p-4 border rounded-md bg-white shadow-sm"
+                            >
+                              <h4 className="font-bold text-primary mb-3">
+                                第{quarter}四半期
+                              </h4>
+                              <div className="space-y-3">
+                                <div>
+                                  <label className="block text-sm font-medium text-text/70 mb-1">
+                                    タイトル
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={advice.title}
+                                    onChange={(e) =>
+                                      handleRoadmapChange(
+                                        yearData.year,
+                                        quarter,
+                                        "title",
+                                        e.target.value
+                                      )
                                     }
-                                    className="flex items-center space-x-2 text-sm text-primary hover:text-primary/80 transition-colors"
-                                  >
-                                    <PlusCircle className="h-4 w-4" />
-                                    <span>タスクを追加</span>
-                                  </button>
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent ${
+                                      originalQuarterAdvice &&
+                                      originalQuarterAdvice.title !==
+                                        advice.title
+                                        ? "bg-yellow-100"
+                                        : ""
+                                    }`}
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-text/70 mb-1">
+                                    アドバイス
+                                  </label>
+                                  <textarea
+                                    value={advice.advice}
+                                    onChange={(e) =>
+                                      handleRoadmapChange(
+                                        yearData.year,
+                                        quarter,
+                                        "advice",
+                                        e.target.value
+                                      )
+                                    }
+                                    rows={2}
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent resize-y ${
+                                      originalQuarterAdvice &&
+                                      originalQuarterAdvice.advice !==
+                                        advice.advice
+                                        ? "bg-yellow-100"
+                                        : ""
+                                    }`}
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-text/70 mb-1">
+                                    詳細タスク
+                                  </label>
+                                  <div className="space-y-2">
+                                    {advice.details.map(
+                                      (detail: string, index: number) => {
+                                        const isDetailChanged =
+                                          originalQuarterAdvice &&
+                                          originalQuarterAdvice.details[
+                                            index
+                                          ] !== detail;
+                                        return (
+                                          <div
+                                            key={index}
+                                            className="flex items-center space-x-2"
+                                          >
+                                            <input
+                                              type="text"
+                                              value={detail}
+                                              onChange={(e) =>
+                                                handleDetailChange(
+                                                  yearData.year,
+                                                  quarter,
+                                                  index,
+                                                  e.target.value
+                                                )
+                                              }
+                                              className={`flex-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent ${
+                                                isDetailChanged
+                                                  ? "bg-yellow-100"
+                                                  : ""
+                                              }`}
+                                            />
+                                          </div>
+                                        );
+                                      }
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      }
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
+                          );
+                        }
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
           <div className="flex justify-end mt-4">
             <button
@@ -1730,6 +2409,33 @@ const TaxAccountantDashboard: React.FC = () => {
               ナビゲーションを保存
             </button>
           </div>
+        </div>
+
+        {/* 売上目標編集セクション */}
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-text flex items-center space-x-2">
+              <Target className="h-5 w-5 text-primary" />
+              <span>目標設定・編集</span>
+            </h3>
+            {isSalesTargetModified && (
+              <button
+                onClick={handleSaveSalesTargets}
+                className="px-4 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+              >
+                保存
+              </button>
+            )}
+          </div>
+          <SalesTargetEditor
+            targets={editableSalesTargets}
+            onChange={handleSalesTargetChange}
+            grossProfitMarginTarget={selectedUser.grossProfitMarginTarget || 0}
+            operatingProfitMarginTarget={
+              selectedUser.operatingProfitMarginTarget || 0
+            }
+            onProfitMarginChange={handleProfitMarginChange}
+          />
         </div>
       </div>
     );
@@ -1744,6 +2450,13 @@ const TaxAccountantDashboard: React.FC = () => {
           クライアント管理 (デモモード)
         </h1>
         <div className="flex items-center gap-4">
+          <button
+            onClick={openAddUserModal}
+            className="flex items-center justify-center bg-primary text-white font-medium py-2 px-4 rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            <PlusCircle className="h-5 w-5 mr-2" />
+            新規クライアント追加
+          </button>
           <div className="text-sm text-text/70">
             登録ユーザー数: {users.length}名
             {isLoading && <span className="ml-2">(読み込み中...)</span>}
@@ -1800,21 +2513,16 @@ const TaxAccountantDashboard: React.FC = () => {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center space-x-3">
                     <div className="bg-primary/10 p-2 rounded-full">
-                      <Users className="h-5 w-5 text-primary" />
+                      <User className="h-5 w-5 text-primary" />
                     </div>
                     <div>
                       <div className="flex items-center space-x-2">
                         <h3 className="font-semibold text-text">
                           {user.userName}
                         </h3>
-                        {user.hasComment && (
-                          <MessageSquare className="h-4 w-4 text-green-600" />
-                        )}
                       </div>
                       <p className="text-sm text-text/70">{user.email}</p>
-                      <p className="text-sm text-text/70">
-                        {user.businessName}
-                      </p>
+                      <p className="text-sm text-text/70">{user.companyName}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -1824,9 +2532,13 @@ const TaxAccountantDashboard: React.FC = () => {
 
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-text/70">決算月</span>
+                    <span className="text-sm text-text/70">事業開始年月</span>
                     <span className="text-sm font-medium text-primary">
-                      {getFiscalYearEndMonthName(user.fiscalYearEndMonth)}
+                      {user.businessStartDate
+                        ? `${user.businessStartDate.split("-")[0]}年${
+                            user.businessStartDate.split("-")[1]
+                          }月`
+                        : "未設定"}
                     </span>
                   </div>
 
@@ -1857,8 +2569,211 @@ const TaxAccountantDashboard: React.FC = () => {
           )}
         </>
       )}
+
+      {/* 新規ユーザー追加モーダル */}
+      {isAddUserModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 sm:p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-6">新規クライアント追加</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  メールアドレス *
+                </label>
+                <input
+                  type="text"
+                  name="email"
+                  value={newUser.email || ""}
+                  onChange={handleNewUserChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                {errors.email && (
+                  <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                )}
+              </div>
+              {/* Password */}
+              <div>
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  パスワード *
+                </label>
+                <input
+                  type="text"
+                  name="password"
+                  value={newUser.password || ""}
+                  onChange={handleNewUserChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                {errors.password && (
+                  <p className="text-red-500 text-xs mt-1">{errors.password}</p>
+                )}
+              </div>
+              {/* User Name */}
+              <div>
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  ユーザー名 *
+                </label>
+                <input
+                  type="text"
+                  name="userName"
+                  value={newUser.userName || ""}
+                  onChange={handleNewUserChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                {errors.userName && (
+                  <p className="text-red-500 text-xs mt-1">{errors.userName}</p>
+                )}
+              </div>
+              {/* Company Name */}
+              <div>
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  会社名 *
+                </label>
+                <input
+                  type="text"
+                  name="companyName"
+                  value={newUser.companyName || ""}
+                  onChange={handleNewUserChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+                {errors.companyName && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.companyName}
+                  </p>
+                )}
+              </div>
+              {/* Capital */}
+              <div>
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  資本金 (円)
+                </label>
+                <input
+                  type="number"
+                  name="capital"
+                  value={newUser.capital || 0}
+                  onChange={handleNewUserChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                />
+              </div>
+              {/* Company Size */}
+              <div>
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  会社規模
+                </label>
+                <select
+                  name="companySize"
+                  value={newUser.companySize}
+                  onChange={handleNewUserChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  {companySizeOptions.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {/* Industry */}
+              <div>
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  業界
+                </label>
+                <select
+                  name="industry"
+                  value={newUser.industry}
+                  onChange={handleNewUserChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  {industryOptions.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {/* Business Start Date */}
+              <div>
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  事業開始年月
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    name="businessStartYear"
+                    value={newUser.businessStartYear || ""}
+                    onChange={handleNewUserChange}
+                    className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    {Array.from({ length: 11 }, (_, i) => currentYear - i).map(
+                      (year) => (
+                        <option key={year} value={year}>
+                          {year}年
+                        </option>
+                      )
+                    )}
+                  </select>
+                  <select
+                    name="businessStartMonth"
+                    value={newUser.businessStartMonth || ""}
+                    onChange={handleNewUserChange}
+                    className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg"
+                  >
+                    {Array.from({ length: 12 }, (_, i) =>
+                      String(i + 1).padStart(2, "0")
+                    ).map((month) => {
+                      if (
+                        newUser.businessStartYear &&
+                        Number(newUser.businessStartYear) === currentYear &&
+                        Number(month) > currentMonth
+                      ) {
+                        return null;
+                      }
+                      return (
+                        <option key={month} value={month}>
+                          {Number(month)}月
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              </div>
+              {/* Knowledge Level */}
+              <div>
+                <label className="block text-sm font-medium text-text/70 mb-1">
+                  財務・会計の知識レベル
+                </label>
+                <select
+                  name="financialKnowledge"
+                  value={newUser.financialKnowledge}
+                  onChange={handleNewUserChange}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                >
+                  {financialKnowledgeOptions.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-4 mt-8">
+              <button
+                onClick={closeAddUserModal}
+                className="px-4 py-2 text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={handleAddNewUser}
+                className="px-4 py-2 text-white bg-primary rounded-lg hover:bg-primary/90"
+              >
+                追加
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default TaxAccountantDashboard;
+export default ClientManagement;

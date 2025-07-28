@@ -9,6 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { useAuth } from "../contexts/AuthContext";
 
 interface YearlyData {
   year: number;
@@ -166,13 +167,48 @@ const DEMO_ROADMAP_DATA = {
   ],
 };
 
+// ユーザーIDに基づいてデモデータを変更するヘルパー
+const getDemoDataForUser = (userId: string | undefined) => {
+  if (!userId) {
+    return {
+      tenYearData: { target: 0, actual: 0, progress: 0 },
+      yearlyTargets: [],
+    };
+  }
+
+  const multiplier =
+    userId === "user-A" ? 0.95 : userId === "user-B" ? 1.05 : 1;
+
+  const userYearlyTargets = DEMO_ROADMAP_DATA.yearlyTargets.map((target) => ({
+    ...target,
+    revenueActual: Math.round(target.revenueActual * multiplier),
+    grossProfitActual: Math.round(target.grossProfitActual * multiplier),
+    operatingProfitActual: Math.round(
+      target.operatingProfitActual * multiplier
+    ),
+    netWorthActual: Math.round(target.netWorthActual * multiplier),
+  }));
+
+  const userTenYearData = {
+    ...DEMO_ROADMAP_DATA.tenYearData,
+    actual: Math.round(DEMO_ROADMAP_DATA.tenYearData.actual * multiplier),
+    progress: DEMO_ROADMAP_DATA.tenYearData.progress * multiplier,
+  };
+
+  return {
+    tenYearData: userTenYearData,
+    yearlyTargets: userYearlyTargets,
+  };
+};
+
 type EditableField =
   | "revenueTarget"
   | "grossProfitTarget"
   | "operatingProfitTarget"
   | "netWorthTarget";
 
-const Roadmap: React.FC = () => {
+const YearlyBudgetActual: React.FC = () => {
+  const { selectedUser } = useAuth();
   // アニメーション用の状態
   const [tenYearProgress, setTenYearProgress] = useState(0);
 
@@ -182,11 +218,9 @@ const Roadmap: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   // 進捗計算用の状態（デモデータで初期化）
-  const [tenYearData] = useState(DEMO_ROADMAP_DATA.tenYearData);
+  const [tenYearData, setTenYearData] = useState(DEMO_ROADMAP_DATA.tenYearData);
 
-  const [targets, setTargets] = useState<YearlyData[]>(
-    DEMO_ROADMAP_DATA.yearlyTargets
-  );
+  const [targets, setTargets] = useState<YearlyData[]>([]);
 
   // 新しいテーブル用の状態
   const [tableViewPeriod, setTableViewPeriod] = useState<"1-5" | "6-10">("1-5");
@@ -198,10 +232,16 @@ const Roadmap: React.FC = () => {
   // デモデータを読み込み
   useEffect(() => {
     const loadDemoData = async () => {
+      if (!selectedUser) {
+        setIsLoading(false);
+        return;
+      }
       try {
         setIsLoading(true);
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        setTargets(JSON.parse(JSON.stringify(DEMO_ROADMAP_DATA.yearlyTargets)));
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        const data = getDemoDataForUser(selectedUser.id);
+        setTargets(JSON.parse(JSON.stringify(data.yearlyTargets)));
+        setTenYearData(data.tenYearData);
       } catch (err) {
         setError("データの読み込みに失敗しました");
       } finally {
@@ -210,7 +250,7 @@ const Roadmap: React.FC = () => {
     };
 
     loadDemoData();
-  }, []);
+  }, [selectedUser]);
 
   const handleCellUpdate = (
     year: number,
@@ -302,7 +342,9 @@ const Roadmap: React.FC = () => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-text/70">データを読み込み中...</p>
+          <p className="text-text/70">
+            {selectedUser?.name} さんのデータを読み込み中...
+          </p>
           <p className="text-sm text-blue-600 mt-2">(デモモード)</p>
         </div>
       </div>
@@ -432,7 +474,7 @@ const Roadmap: React.FC = () => {
         <div className="flex items-center space-x-3">
           <Navigation className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-text">
-            10年目標設定 (デモモード)
+            予実管理(年次)
           </h1>
         </div>
       </div>
@@ -662,4 +704,4 @@ const Roadmap: React.FC = () => {
   );
 };
 
-export default Roadmap;
+export default YearlyBudgetActual;

@@ -1,68 +1,18 @@
 import React, { useState } from "react";
 import { Plus, Trash2, Edit } from "lucide-react";
-import type { CompanySize, Industry, FinancialKnowledge } from "../types";
-
-// Types from TaxAccountantDashboard.tsx
-interface CommentHistory {
-  id: string;
-  comment: string;
-  date: string;
-  yearMonth: string; // YYYY-MM形式
-}
-
-interface PerformanceMetrics {
-  target: number;
-  actual: number;
-  achievementRate: number;
-}
-
-interface MonthlyPerformance {
-  sales: PerformanceMetrics;
-  grossProfit: PerformanceMetrics;
-  operatingProfit: PerformanceMetrics;
-}
-
-interface RoadmapAdvice {
-  title: string;
-  advice: string;
-  details: string[];
-}
-
-interface RoadmapQuarter {
-  [quarter: number]: RoadmapAdvice;
-}
-
-interface RoadmapYear {
-  year: number;
-  quarters: RoadmapQuarter;
-}
-
-interface UserPerformanceData {
-  userId: string;
-  userName: string;
-  email: string;
-  password?: string;
-  companyName: string;
-  role: "一般ユーザー" | "税理士" | "管理者";
-  phoneNumber?: string;
-  capital?: number;
-  companySize?: CompanySize;
-  industry?: Industry;
-  businessStartDate?: string;
-  financialKnowledge?: FinancialKnowledge;
-  lastUpdated: string;
-  fiscalYearEndMonth: number; // 決算月（1-12）
-  performance: {
-    currentMonth: MonthlyPerformance;
-    lastMonth: MonthlyPerformance;
-    twoMonthsAgo: MonthlyPerformance;
-  };
-  hasComment: boolean;
-  comment: string;
-  commentDate: string;
-  commentHistory: CommentHistory[];
-  roadmap: RoadmapYear[];
-}
+import type {
+  CompanySize,
+  Industry,
+  FinancialKnowledge,
+  UserPerformanceData,
+  RoadmapYear,
+  RoadmapQuarter,
+  RoadmapAdvice,
+  MonthlyPerformance,
+  PerformanceMetrics,
+  UserRole,
+  SalesTarget,
+} from "../types";
 
 const defaultRoadmapYear1: RoadmapQuarter = {
   1: {
@@ -179,6 +129,21 @@ const generateDefaultRoadmap = (): RoadmapYear[] => {
   return roadmap;
 };
 
+const generateDefaultSalesTargets = (): SalesTarget[] => {
+  return [
+    { year: 2024, targetAmount: 8000000 },
+    { year: 2025, targetAmount: 16000000 },
+    { year: 2026, targetAmount: 24000000 },
+    { year: 2027, targetAmount: 32000000 },
+    { year: 2028, targetAmount: 40000000 },
+    { year: 2029, targetAmount: 48000000 },
+    { year: 2030, targetAmount: 56000000 },
+    { year: 2031, targetAmount: 64000000 },
+    { year: 2032, targetAmount: 72000000 },
+    { year: 2033, targetAmount: 80000000 },
+  ];
+};
+
 const generateDefaultPerformance = (): {
   currentMonth: MonthlyPerformance;
   lastMonth: MonthlyPerformance;
@@ -216,6 +181,7 @@ const initialUsers: UserPerformanceData[] = [
     commentDate: "",
     commentHistory: [],
     roadmap: generateDefaultRoadmap(),
+    salesTargets: generateDefaultSalesTargets(),
   },
   {
     userId: "normal-user-002",
@@ -231,12 +197,13 @@ const initialUsers: UserPerformanceData[] = [
     commentDate: "",
     commentHistory: [],
     roadmap: generateDefaultRoadmap(),
+    salesTargets: generateDefaultSalesTargets(),
   },
   {
     userId: "tax-user-001",
-    userName: "税理士ユーザー",
+    userName: "管理者ユーザー",
     email: "taxUser@example.com",
-    role: "税理士",
+    role: "管理者ユーザー",
     lastUpdated: "2023-03-10",
     companyName: "税理士事務所",
     fiscalYearEndMonth: 12,
@@ -246,12 +213,13 @@ const initialUsers: UserPerformanceData[] = [
     commentDate: "",
     commentHistory: [],
     roadmap: generateDefaultRoadmap(),
+    salesTargets: generateDefaultSalesTargets(),
   },
   {
     userId: "admin-user-001",
-    userName: "管理者ユーザー",
+    userName: "プラットフォームオーナー",
     email: "adminUser@example.com",
-    role: "管理者",
+    role: "プラットフォームオーナー",
     lastUpdated: "2023-04-01",
     companyName: "ミエトル株式会社",
     fiscalYearEndMonth: 12,
@@ -261,6 +229,7 @@ const initialUsers: UserPerformanceData[] = [
     commentDate: "",
     commentHistory: [],
     roadmap: generateDefaultRoadmap(),
+    salesTargets: generateDefaultSalesTargets(),
   },
 ];
 
@@ -312,12 +281,13 @@ const UserManagement: React.FC = () => {
     | "commentDate"
     | "commentHistory"
     | "roadmap"
+    | "salesTargets"
   > & { password?: string } = {
     userName: "",
     email: "",
     password: "",
     companyName: "",
-    role: "一般ユーザー",
+    role: "管理者ユーザー",
     phoneNumber: "",
     capital: 0,
     companySize: "法人（従業員1-5名）",
@@ -335,10 +305,7 @@ const UserManagement: React.FC = () => {
     const { name, value } = e.target;
     setNewUser((prev) => ({
       ...prev,
-      [name]:
-        name === "role"
-          ? (value as "一般ユーザー" | "税理士" | "管理者")
-          : value,
+      [name]: name === "role" ? (value as UserRole) : value,
     }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
@@ -395,6 +362,7 @@ const UserManagement: React.FC = () => {
       commentDate: "",
       commentHistory: [],
       roadmap: generateDefaultRoadmap(),
+      salesTargets: generateDefaultSalesTargets(),
       ...newUser,
       role: newUser.role,
       capital:
@@ -550,9 +518,9 @@ const UserManagement: React.FC = () => {
                 <td className="px-6 py-4">
                   <span
                     className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      user.role === "管理者"
+                      user.role === "プラットフォームオーナー"
                         ? "bg-red-100 text-red-800"
-                        : user.role === "税理士"
+                        : user.role === "管理者ユーザー"
                         ? "bg-blue-100 text-blue-800"
                         : "bg-green-100 text-green-800"
                     }`}
@@ -598,9 +566,8 @@ const UserManagement: React.FC = () => {
                   onChange={handleNewUserChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                 >
-                  <option>一般ユーザー</option>
-                  <option>税理士</option>
-                  <option>管理者</option>
+                  <option>管理者ユーザー</option>
+                  <option>プラットフォームオーナー</option>
                 </select>
               </div>
 
@@ -610,7 +577,7 @@ const UserManagement: React.FC = () => {
                   メールアドレス *
                 </label>
                 <input
-                  type="email"
+                  type="text"
                   name="email"
                   value={newUser.email}
                   onChange={handleNewUserChange}
@@ -628,7 +595,7 @@ const UserManagement: React.FC = () => {
                   パスワード *
                 </label>
                 <input
-                  type="password"
+                  type="text"
                   name="password"
                   value={newUser.password}
                   onChange={handleNewUserChange}
@@ -718,7 +685,7 @@ const UserManagement: React.FC = () => {
                   {/* Company Size */}
                   <div>
                     <label className="block text-sm font-medium text-text/70 mb-1">
-                      企業規模
+                      会社規模
                     </label>
                     <select
                       name="companySize"
@@ -814,30 +781,13 @@ const UserManagement: React.FC = () => {
             <h2 className="text-2xl font-bold mb-6">ユーザー情報編集</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-              {/* Role */}
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-text/70 mb-1">
-                  権限 *
-                </label>
-                <select
-                  name="role"
-                  value={newUser.role}
-                  onChange={handleNewUserChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                >
-                  <option>一般ユーザー</option>
-                  <option>税理士</option>
-                  <option>管理者</option>
-                </select>
-              </div>
-
               {/* Email */}
               <div>
                 <label className="block text-sm font-medium text-text/70 mb-1">
                   メールアドレス *
                 </label>
                 <input
-                  type="email"
+                  type="text"
                   name="email"
                   value={newUser.email}
                   onChange={handleNewUserChange}
@@ -855,7 +805,7 @@ const UserManagement: React.FC = () => {
                   パスワード (変更する場合のみ入力)
                 </label>
                 <input
-                  type="password"
+                  type="text"
                   name="password"
                   value={newUser.password}
                   onChange={handleNewUserChange}

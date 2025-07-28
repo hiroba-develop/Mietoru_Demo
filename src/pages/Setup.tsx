@@ -194,7 +194,7 @@ const Setup: React.FC = () => {
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3">
-                企業規模
+                会社規模
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {companyTypes.map((type) => (
@@ -375,7 +375,7 @@ const Setup: React.FC = () => {
                   {setupData.phoneNumber}
                 </p>
                 <p>
-                  <span className="text-gray-600">企業規模:</span>{" "}
+                  <span className="text-gray-600">会社規模:</span>{" "}
                   {setupData.companySize}
                 </p>
                 <p>

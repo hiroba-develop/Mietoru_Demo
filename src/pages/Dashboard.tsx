@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  TrendingUp,
   CheckCircle,
   Star,
   AlertCircle,
@@ -9,6 +8,7 @@ import {
   BellOff,
 } from "lucide-react";
 import Navigation from "./Navigation";
+import { useAuth } from "../contexts/AuthContext";
 
 // デモデータ用の型定義
 interface Task {
@@ -255,6 +255,58 @@ const DEMO_TAX_COMMENTS: TaxAccountantComment[] = [
   },
 ];
 
+// ユーザーごとのデモデータを生成するファクトリ
+const getDemoDataForUser = (userId: string | undefined) => {
+  if (!userId) {
+    return {
+      tasks: [],
+      sales: [],
+      profits: [],
+      netAssets: [],
+      comments: [],
+    };
+  }
+
+  // ユーザーIDに基づいてデモデータを少しだけ変化させる
+  const userSpecificTasks = DEMO_TASKS.map((task) => ({
+    ...task,
+    completed: userId === "user-A" ? !task.completed : task.completed,
+  }));
+  const userSpecificSales = DEMO_SALES.map((sale) => ({
+    ...sale,
+    saleResult:
+      sale.saleResult &&
+      Math.round(
+        sale.saleResult *
+          (userId === "user-A" ? 0.95 : userId === "user-B" ? 1.05 : 1)
+      ),
+  }));
+  const userSpecificProfits = DEMO_PROFITS.map((profit) => ({
+    ...profit,
+    profitResult:
+      profit.profitResult &&
+      Math.round(
+        profit.profitResult *
+          (userId === "user-A" ? 0.95 : userId === "user-B" ? 1.05 : 1)
+      ),
+  }));
+  const userSpecificComments = DEMO_TAX_COMMENTS.map((c, index) => ({
+    ...c,
+    comment:
+      userId === "user-B" && index === 0
+        ? "クライアントB向けの特別なアドバイスです。投資計画を見直しましょう。"
+        : c.comment,
+  }));
+
+  return {
+    tasks: userSpecificTasks,
+    sales: userSpecificSales,
+    profits: userSpecificProfits,
+    netAssets: DEMO_NET_ASSETS, // 純資産は共通とする
+    comments: userSpecificComments,
+  };
+};
+
 const getAlertIcon = (type: AlertNotification["type"]) => {
   switch (type) {
     case "success":
@@ -304,17 +356,20 @@ const getAlertColors = (type: AlertNotification["type"]) => {
 };
 
 const Dashboard: React.FC = () => {
+  const { selectedUser } = useAuth();
+
   // 状態管理
-  const [monthlyTasks, setMonthlyTasks] = useState<Task[]>(DEMO_TASKS);
+  const [monthlyTasks, setMonthlyTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // デモデータの状態管理
-  const [salesData] = useState<Sale[]>(DEMO_SALES);
-  const [profitsData] = useState<Profit[]>(DEMO_PROFITS);
-  const [netAssetsData] = useState<NetAsset[]>(DEMO_NET_ASSETS);
-  const [taxAccountantComments] =
-    useState<TaxAccountantComment[]>(DEMO_TAX_COMMENTS);
+  const [salesData, setSalesData] = useState<Sale[]>([]);
+  const [profitsData, setProfitsData] = useState<Profit[]>([]);
+  const [netAssetsData] = useState<NetAsset[]>(DEMO_NET_ASSETS); // 純資産はユーザーによらず固定
+  const [taxAccountantComments, setTaxAccountantComments] = useState<
+    TaxAccountantComment[]
+  >([]);
 
   // 現在の年月を取得
   const currentDate = new Date();
@@ -324,10 +379,18 @@ const Dashboard: React.FC = () => {
   // デモデータロード（APIの代替）
   useEffect(() => {
     const loadDemoData = async () => {
+      if (!selectedUser) return;
+
       try {
         setLoading(true);
         // デモ用の遅延
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        const data = getDemoDataForUser(selectedUser.id);
+        setMonthlyTasks(data.tasks);
+        setSalesData(data.sales);
+        setProfitsData(data.profits);
+        setTaxAccountantComments(data.comments);
       } catch (err) {
         console.error("デモデータ読み込みエラー:", err);
         setError("デモデータの読み込み中にエラーが発生しました");
@@ -337,7 +400,7 @@ const Dashboard: React.FC = () => {
     };
 
     loadDemoData();
-  }, []);
+  }, [selectedUser]);
 
   // 今月の利益目標と実績（デモデータから取得）
   const getCurrentMonthData = () => {
@@ -380,20 +443,6 @@ const Dashboard: React.FC = () => {
     await new Promise((resolve) => setTimeout(resolve, 300));
   };
 
-  // 前月比計算用のヘルパー関数
-  const calculateMonthlyChange = (
-    current: number,
-    previous: number
-  ): string => {
-    if (previous === 0) {
-      // 前月データがない場合
-      if (current > 0) return "+100.0%"; // 今月に数値があれば100%増
-      return "0.0%"; // 両方とも0なら変化なし
-    }
-    const changeRate = ((current - previous) / previous) * 100;
-    return `${changeRate >= 0 ? "+" : ""}${changeRate.toFixed(1)}%`;
-  };
-
   // 前月データを取得する関数
   const getPreviousMonthData = () => {
     let prevYear = currentYear;
@@ -427,97 +476,6 @@ const Dashboard: React.FC = () => {
     currentMonthData.profitTarget > 0
       ? (currentMonthData.profitResult / currentMonthData.profitTarget) * 100
       : 0;
-
-  // 前月の利益達成率を計算
-  const previousProfitTarget =
-    profitsData.find(
-      (profit) =>
-        profit.year ===
-          (currentMonthNumber === 1 ? currentYear - 1 : currentYear) &&
-        profit.month ===
-          (currentMonthNumber === 1 ? 12 : currentMonthNumber - 1)
-    )?.profitTarget || 0;
-
-  const previousProfitAchievementRate =
-    previousProfitTarget > 0
-      ? (previousMonthData.profitResult / previousProfitTarget) * 100
-      : 0;
-
-  // KPIデータ（デモデータから取得）
-  const kpiData = [
-    {
-      title: `${currentYear}年${currentMonthNumber
-        .toString()
-        .padStart(2, "0")}月の売上`,
-      value: `${currentMonthData.saleResult.toLocaleString()}円`,
-      change: calculateMonthlyChange(
-        currentMonthData.saleResult,
-        previousMonthData.saleResult
-      ),
-      trend:
-        currentMonthData.saleResult >= previousMonthData.saleResult
-          ? "up"
-          : "down",
-      color:
-        currentMonthData.saleResult >= previousMonthData.saleResult
-          ? "text-success"
-          : "text-red-500",
-    },
-    {
-      title: `${currentYear}年${currentMonthNumber
-        .toString()
-        .padStart(2, "0")}月の粗利益`,
-      value: `${currentMonthData.profitResult.toLocaleString()}円`,
-      change: calculateMonthlyChange(
-        currentMonthData.profitResult,
-        previousMonthData.profitResult
-      ),
-      trend:
-        currentMonthData.profitResult >= previousMonthData.profitResult
-          ? "up"
-          : "down",
-      color:
-        currentMonthData.profitResult >= previousMonthData.profitResult
-          ? "text-success"
-          : "text-red-500",
-    },
-    {
-      title: `${currentYear}年${currentMonthNumber
-        .toString()
-        .padStart(2, "0")}月の営業利益`,
-      value: `${currentMonthData.profitResult.toLocaleString()}円`,
-      change: calculateMonthlyChange(
-        currentMonthData.profitResult,
-        previousMonthData.profitResult
-      ),
-      trend:
-        currentMonthData.profitResult >= previousMonthData.profitResult
-          ? "up"
-          : "down",
-      color:
-        currentMonthData.profitResult >= previousMonthData.profitResult
-          ? "text-success"
-          : "text-red-500",
-    },
-    {
-      title: `${currentYear}年${currentMonthNumber
-        .toString()
-        .padStart(2, "0")}月の営業利益達成率`,
-      value: `${profitAchievementRate.toFixed(1)}%`,
-      change: calculateMonthlyChange(
-        profitAchievementRate,
-        previousProfitAchievementRate
-      ),
-      trend:
-        profitAchievementRate >= previousProfitAchievementRate ? "up" : "down",
-      color:
-        profitAchievementRate >= 100
-          ? "text-success"
-          : profitAchievementRate >= 80
-          ? "text-warning"
-          : "text-red-500",
-    },
-  ];
 
   // 通知生成ロジック
   const alerts: AlertNotification[] = [];
@@ -594,7 +552,9 @@ const Dashboard: React.FC = () => {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <p className="text-gray-500">ダッシュボードデータを読み込み中...</p>
+          <p className="text-gray-500">
+            {selectedUser?.name} さんのダッシュボードデータを読み込み中...
+          </p>
         </div>
       </div>
     );
@@ -624,7 +584,7 @@ const Dashboard: React.FC = () => {
           ダッシュボード
         </h1>
         <div className="text-xs sm:text-sm text-text/70">
-          最終更新: {new Date().toLocaleString("ja-JP")} (デモモード)
+          最終更新: {new Date().toLocaleString("ja-JP")}
         </div>
       </div>
 
@@ -655,22 +615,25 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* KPIカード */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {kpiData.map((kpi, index) => (
-          <div key={index} className="card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-text/70">{kpi.title}</p>
-                <p className="text-2xl font-bold text-text mt-1">{kpi.value}</p>
-                <p className={`text-sm mt-1 ${kpi.color}`}>
-                  <TrendingUp className="inline h-4 w-4 mr-1" />
-                  前月比{kpi.change}
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="card border-green-200 bg-green-50">
+          <h3 className="text-lg font-bold text-green-800">◎</h3>
+          <p className="mt-2 text-sm text-green-700">
+            今月良かった点について定性的な記載
+          </p>
+        </div>
+        <div className="card border-yellow-200 bg-yellow-50">
+          <h3 className="text-lg font-bold text-yellow-800">△</h3>
+          <p className="mt-2 text-sm text-yellow-700">
+            今月注意するべき点について定性的な記載
+          </p>
+        </div>
+        <div className="card border-red-200 bg-red-50">
+          <h3 className="text-lg font-bold text-red-800">×</h3>
+          <p className="mt-2 text-sm text-red-700">
+            今月警戒するべき点について定性的な記載
+          </p>
+        </div>
       </div>
       {/* 10年進捗可視化カード - カーナビ風 */}
       <Navigation />

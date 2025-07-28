@@ -7,14 +7,14 @@ import {
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
-import Roadmap from "./pages/Roadmap";
-import BudgetActual from "./pages/BudgetActual";
+import YearlyBudgetActual from "./pages/YearlyBudgetActual";
+import MonthlyBudgetActual from "./pages/MonthlyBudgetActual";
 import Support from "./pages/Support";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import Setup from "./pages/Setup";
 import Ranking from "./pages/Ranking";
-import TaxAccountantDashboard from "./pages/TaxAccountantDashboard";
+import ClientManagement from "./pages/ClientManagement";
 import UserManagement from "./pages/UserManagement";
 import { useEffect } from "react";
 
@@ -115,21 +115,21 @@ const AppContent: React.FC = () => {
         }
       />
       <Route
-        path="/roadmap"
+        path="/yearlyBudgetActual"
         element={
           <ProtectedRoute>
             <Layout>
-              <Roadmap />
+              <YearlyBudgetActual />
             </Layout>
           </ProtectedRoute>
         }
       />
       <Route
-        path="/budgetActual"
+        path="/monthlyBudgetActual"
         element={
           <ProtectedRoute>
             <Layout>
-              <BudgetActual />
+              <MonthlyBudgetActual />
             </Layout>
           </ProtectedRoute>
         }
@@ -165,11 +165,11 @@ const AppContent: React.FC = () => {
         }
       />
       <Route
-        path="/taxAccountant"
+        path="/clientManagement"
         element={
           <ProtectedRoute>
             <Layout>
-              <TaxAccountantDashboard />
+              <ClientManagement />
             </Layout>
           </ProtectedRoute>
         }

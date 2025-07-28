@@ -6,7 +6,6 @@ import {
   TrendingUp,
   BarChart3,
   CheckCircle,
-  ArrowLeft,
   Map,
   Calendar,
   Clock,
@@ -392,14 +391,6 @@ const Navigation = () => {
                 <div className="text-sm opacity-90">2024年 - 2034年</div>
               </div>
             </div>
-            <button
-              onClick={() => setViewMode("quarter")}
-              className="flex items-center space-x-2 px-3 py-1 rounded-lg bg-white hover:bg-gray-100 transition-all text-sm"
-              style={{ color: "#67BACA" }}
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>戻る</span>
-            </button>
           </div>
         </div>
 
